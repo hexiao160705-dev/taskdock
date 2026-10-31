@@ -1,0 +1,34 @@
+{
+  "name": "taskdock",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local-first task agent control plane with isolated runs and versioned capability bundles",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env src/server.js",
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "registry": "node --env-file-if-exists=.env src/registry-server.js",
+    "mcp": "node --env-file-if-exists=.env src/mcp-stdio.js",
+    "test": "node --test --test-concurrency=1 test/*.test.js",
+    "check": "node scripts/check.js",
+    "backup": "node scripts/backup.js",
+    "demo": "node --env-file-if-exists=.env scripts/client-demo.js",
+    "local:start": "node --env-file-if-exists=.env scripts/local-services.js",
+    "local:stop": "node --env-file-if-exists=.env scripts/local-services.js stop"
+  },
+  "dependencies": {
+    "@earendil-works/pi-ai": "1.4.0",
+    "@earendil-works/pi-coding-agent": "1.4.0",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@sinclair/typebox": "0.34.41",
+    "cron-parser": "5.10.2",
+    "express": "5.1.0",
+    "zod": "4.1.12"
+  },
+  "devDependencies": {
+    "prettier": "3.6.2"
+  }
+}

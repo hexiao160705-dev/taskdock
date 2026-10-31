@@ -21,6 +21,8 @@ npm run registry
 
 Registry：[http://127.0.0.1:4641](http://127.0.0.1:4641)。这两个端口被占用时服务会明确报错；使用 PORT / REGISTRY_PORT 和 TASKDOCK_REGISTRY_URL 配置其他端口。
 
+也可使用 `npm run local:start` 在后台启动两个本机服务并核对身份与 health，使用 `npm run local:stop` 只停止本项目记录的服务。它不是系统开机自启或生产部署。
+
 ## 先体验这条路径
 
 1. 打开“服务上线检查”→“调试请求”。默认缺少实机证据，应返回“待补证据”；它只核对输入，不会探测真实服务。
@@ -42,7 +44,7 @@ args = ["/absolute/path/taskdock/src/mcp-stdio.js"]
 
 将路径替换为真实绝对路径。本机端口非默认值时，通过 MCP 的 env.TASKDOCK_URL 指定服务 URL。HTTP MCP 入口为 `http://127.0.0.1:4640/mcp`。
 
-提供 7 个 MCP 工具：search、plan、open*session、submit、get_run、list_runs、cancel_run，完整名称带 taskdock* 前缀。上层调用规则见 [skills/taskdock-client/SKILL.md](skills/taskdock-client/SKILL.md)。未自动改动你的全局 Codex 配置。
+提供 7 个 MCP 工具：`search`、`plan`、`open_session`、`submit`、`get_run`、`list_runs`、`cancel_run`，完整名称带 `taskdock_` 前缀。上层调用规则见 [skills/taskdock-client/SKILL.md](skills/taskdock-client/SKILL.md)。未自动改动你的全局 Codex 配置。
 
 ## 真实模型、MCP 与 Team
 

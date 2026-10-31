@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>TaskDock Registry · 任务能力共享</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%234b6ef5'/%3E%3Ctext x='10' y='28' font-size='26' fill='white'%3ET%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="/assets/styles.css" />
+    <script type="module" src="/assets/registry.js"></script>
+  </head>
+  <body>
+    <div class="registry-shell">
+      <header class="registry-top">
+        <a class="brand" href="/"
+          ><span class="brand-mark">▥</span
+          ><span>TaskDock <small>CAPABILITY REGISTRY</small></span></a
+        ><span class="badge blue">自托管 Registry DEMO</span>
+      </header>
+      <section class="registry-hero">
+        <div class="eyebrow">GOOD WORK DESERVES TO BE REUSED</div>
+        <h1>让好的任务能力，<br />抵达下一个工作空间。</h1>
+        <p>
+          共享经过维护和版本管理的任务
+          AI。保留方法、规则和审核后的知识；请求历史与私密数据留在本地。
+        </p>
+      </section>
+      <div id="registry-auth"></div>
+      <label class="search" style="max-width: 380px"
+        ><input
+          id="registry-search"
+          aria-label="搜索共享任务"
+          placeholder="搜索任务名称、能力或标签…"
+      /></label>
+      <div id="registry-packages" class="wide-grid">
+        <div class="empty full">正在连接 Registry…</div>
+      </div>
+      <footer class="registry-footer">
+        TaskDock Registry 0.1.0 · 独立服务演示 · 尚未部署为公开社区
+      </footer>
+    </div>
+    <dialog id="package-dialog"><div id="package-detail"></div></dialog>
+  </body>
+</html>

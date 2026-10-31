@@ -1,0 +1,104 @@
+{
+  "checkedAt": "2026-10-31T03:29:19.944Z",
+  "repositories": [
+    {
+      "repository": "langgenius/dify",
+      "url": "https://github.com/langgenius/dify",
+      "repositoryId": "626805178",
+      "defaultBranch": "main",
+      "archived": false,
+      "visibility": "public",
+      "verification": "Live GitHub connector metadata; capability review in RESEARCH.md"
+    },
+    {
+      "repository": "langchain-ai/langgraph",
+      "url": "https://github.com/langchain-ai/langgraph",
+      "repositoryId": "676672661",
+      "defaultBranch": "main",
+      "archived": false,
+      "visibility": "public",
+      "verification": "Live GitHub connector metadata; capability review in RESEARCH.md"
+    },
+    {
+      "repository": "letta-ai/letta",
+      "url": "https://github.com/letta-ai/letta",
+      "repositoryId": "703411624",
+      "defaultBranch": "main",
+      "archived": false,
+      "visibility": "public",
+      "verification": "Live GitHub connector metadata; capability review in RESEARCH.md"
+    },
+    {
+      "repository": "paperclipai/paperclip",
+      "url": "https://github.com/paperclipai/paperclip",
+      "repositoryId": "1170821064",
+      "defaultBranch": "master",
+      "archived": false,
+      "visibility": "public",
+      "verification": "Live GitHub connector metadata; capability review in RESEARCH.md"
+    },
+    {
+      "repository": "agentregistry-dev/agentregistry",
+      "url": "https://github.com/agentregistry-dev/agentregistry",
+      "repositoryId": "1084396569",
+      "defaultBranch": "main",
+      "archived": false,
+      "visibility": "public",
+      "verification": "Live GitHub connector metadata; capability review in RESEARCH.md"
+    },
+    {
+      "repository": "crewAIInc/crewAI",
+      "url": "https://github.com/crewAIInc/crewAI",
+      "repositoryId": "710601088",
+      "defaultBranch": "main",
+      "archived": false,
+      "visibility": "public",
+      "verification": "Live GitHub connector metadata; capability review in RESEARCH.md"
+    },
+    {
+      "repository": "agent0ai/agent-zero",
+      "url": "https://github.com/agent0ai/agent-zero",
+      "repositoryId": "812975380",
+      "defaultBranch": "main",
+      "archived": false,
+      "visibility": "public",
+      "verification": "Live GitHub connector metadata; capability review in RESEARCH.md"
+    },
+    {
+      "repository": "aaif-goose/goose",
+      "url": "https://github.com/aaif-goose/goose",
+      "repositoryId": "846698999",
+      "defaultBranch": "main",
+      "archived": false,
+      "visibility": "public",
+      "verification": "Live GitHub connector metadata; capability review in RESEARCH.md"
+    },
+    {
+      "repository": "agentic-community/mcp-gateway-registry",
+      "url": "https://github.com/agentic-community/mcp-gateway-registry",
+      "repositoryId": "992799823",
+      "defaultBranch": "main",
+      "archived": false,
+      "visibility": "public",
+      "verification": "Live GitHub connector metadata; capability review in RESEARCH.md"
+    },
+    {
+      "repository": "microsoft/apm",
+      "url": "https://github.com/microsoft/apm",
+      "repositoryId": "1059472549",
+      "defaultBranch": "main",
+      "archived": false,
+      "visibility": "public",
+      "verification": "Live GitHub connector metadata; capability review in RESEARCH.md"
+    },
+    {
+      "repository": "earendil-works/pi",
+      "url": "https://github.com/earendil-works/pi",
+      "repositoryId": "1035029907",
+      "defaultBranch": "main",
+      "archived": false,
+      "visibility": "public",
+      "verification": "Live GitHub connector metadata; capability review in RESEARCH.md"
+    }
+  ]
+}
