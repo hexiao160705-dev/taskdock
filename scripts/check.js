@@ -12,7 +12,7 @@ for (const dir of dirs)
     }
   }
 const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
-if (packageJson.version !== "0.1.0")
+if (!readFileSync("docs/INDEX.md", "utf8").includes(packageJson.version))
   throw new Error("Update release index when version changes");
 console.log(
   `${count} JavaScript files passed syntax checks; release version ${packageJson.version}.`,

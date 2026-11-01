@@ -56,10 +56,21 @@ const state = {
   archived: false,
   runTimer: null,
   apiToken: sessionStorage.getItem("taskdock-api-token") || "",
+  clientSessions: {},
+  received: [],
+  modalGeneration: 0,
 };
+try {
+  state.clientSessions = JSON.parse(
+    sessionStorage.getItem("taskdock-demo-sessions") || "{}",
+  );
+} catch {}
 const navs = [
   ["home", "grid", "任务工作台"],
+  ["graph", "branch", "任务关系"],
+  ["attention", "shield", "待你处理"],
   ["runs", "history", "请求记录"],
+  ["deliveries", "activity", "投递回执"],
   ["knowledge", "learn", "经验与学习"],
   ["schedules", "clock", "定时任务"],
   ["market", "globe", "共享广场"],
@@ -76,6 +87,8 @@ const categoryLabels = {
 const statusLabels = {
   queued: "排队中",
   running: "执行中",
+  waiting_human: "等待回答",
+  waiting_children: "等待子任务",
   succeeded: "已完成",
   failed: "执行失败",
   "needs-attention": "待补证据",
@@ -163,7 +176,7 @@ function nav() {
     .map(([id, i, label]) =>
       id === "separator"
         ? '<div class="nav-separator"></div>'
-        : `<a href="#${id}" class="nav-item ${state.page === id ? "active" : ""}" aria-label="${label}" title="${label}" ${state.page === id ? 'aria-current="page"' : ""}>${icon(i)}<span class="nav-text">${label}</span>${id === "knowledge" && pending ? `<span class="nav-number">${pending}</span>` : ""}</a>`,
+        : `<a href="#${id}" class="nav-item ${state.page === id ? "active" : ""}" aria-label="${label}" title="${label}" ${state.page === id ? 'aria-current="page"' : ""}>${icon(i)}<span class="nav-text">${label}</span>${id === "knowledge" && pending ? `<span class="nav-number">${pending}</span>` : id === "attention" && state.overview.stats.waitingHuman ? `<span class="nav-number">${state.overview.stats.waitingHuman}</span>` : ""}</a>`,
     )
     .join("");
   $("#page-label").textContent =
@@ -183,7 +196,7 @@ function runTable(
 ) {
   if (!runs.length)
     return `<div class="table-wrap empty">${icon("history")}<br>${emptyLabel}</div>`;
-  return `<div class="table-wrap"><table><thead><tr><th>任务 / 请求</th><th>来源与通道</th><th>执行状态</th><th>发起时间 · 上海</th><th></th></tr></thead><tbody>${runs.map((r) => `<tr><td>${esc(state.overview.tasks.find((t) => t.id === r.task_id)?.name || r.task_id)}<div class="task-slug">${esc(r.id.slice(0, 8))}</div></td><td>${badge(r.source === "client" ? "上层会话" : r.source === "schedule" ? "定时任务" : r.source === "bundled-validation" ? "内置能力验收" : "控制台")}&nbsp;${badge(r.channel === "test" ? "测试版" : "正式版", r.channel === "test" ? "amber" : "blue")}</td><td>${statusBadge(r.status)}</td><td>${time(r.created_at)}</td><td><button class="table-action" data-action="run" data-id="${r.id}" aria-label="查看请求 ${esc(r.id.slice(0, 8))}">${icon("arrow")}</button></td></tr>`).join("")}</tbody></table></div>`;
+  return `<div class="table-wrap"><table><thead><tr><th>任务 / 请求</th><th>来源与通道</th><th>执行状态</th><th>发起时间 · 上海</th><th></th></tr></thead><tbody>${runs.map((r) => `<tr><td>${esc(state.overview.tasks.find((t) => t.id === r.task_id)?.name || r.task_id)}<div class="task-slug">${esc(r.id.slice(0, 8))}</div></td><td>${badge(r.source === "client" ? "上层会话" : r.source === "schedule" ? "定时任务" : r.source === "delegate" ? "父任务调用" : r.source === "bundled-validation" ? "内置能力验收" : "控制台")}&nbsp;${badge(r.channel === "test" ? "测试版" : "正式版", r.channel === "test" ? "amber" : "blue")}</td><td>${statusBadge(r.status)}</td><td>${time(r.created_at)}</td><td><button class="table-action" data-action="run" data-id="${r.id}" aria-label="查看请求 ${esc(r.id.slice(0, 8))}">${icon("arrow")}</button></td></tr>`).join("")}</tbody></table></div>`;
 }
 function home() {
   const o = state.overview;
@@ -260,6 +273,63 @@ async function runsPage() {
       button(`${icon("refresh")} 刷新`, "refresh"),
     ) +
     `<div class="page-tools"><label><input type="checkbox" id="include-archived" ${state.archived ? "checked" : ""}>包含已归档请求</label><span class="muted" style="font-size:10px">最多显示最近 250 条记录 · 内置能力验收为真实规则运行</span></div>${runTable(runs)}`;
+}
+async function graphPage() {
+  const graph = await api("/api/task-graph"),
+    incoming = new Map();
+  for (const edge of graph.edges)
+    incoming.set(edge.taskId, (incoming.get(edge.taskId) || 0) + 1);
+  const draw = (id, depth = 0) => {
+    const node = graph.nodes.find((n) => n.id === id);
+    if (!node || depth > 8) return "";
+    const edges = graph.edges.filter((e) => e.parentId === id);
+    return `<li><div class="tree-node"><span class="task-icon">${icon(edges.length ? "branch" : "box")}</span><div><h3>${esc(node.name)} ${(incoming.get(id) || 0) > 1 ? badge(`${incoming.get(id)} 个父任务共享`, "blue") : ""}</h3><small class="mono muted">${esc(id)} · ${node.stable ? `v${esc(node.stable.version)}` : "草稿"}${node.origin ? ` · 派生自 ${esc(node.origin.taskId)}` : ""}</small></div>${button("管理", "task", "small", `data-id="${esc(id)}"`)}</div>${edges.length ? `<ul>${edges.map((e) => `<li class="tree-reference"><span class="tag">${esc(e.key)} · 固定 SHA ${esc(e.digest.slice(0, 10))}</span><ul>${draw(e.taskId, depth + 1)}</ul></li>`).join("")}</ul>` : ""}</li>`;
+  };
+  $("#main").innerHTML =
+    heading(
+      "CAPABILITIES, CONNECTED",
+      "任务关系",
+      "按层展开任务能力。同一个子任务可以被多个父任务引用，每次调用仍有自己的请求记录。",
+      button("新建任务", "new-task", "primary"),
+    ) +
+    hint(
+      "这里展示草稿中的组合关系。父任务引用固定的子任务正式版；子任务升级不会自动改变父任务。微调请派生新任务，再明确替换引用。",
+    ) +
+    `<section class="full-panel task-tree"><ul>${graph.nodes
+      .filter((n) => !incoming.has(n.id))
+      .sort(
+        (a, b) =>
+          graph.edges.filter((e) => e.parentId === b.id).length -
+          graph.edges.filter((e) => e.parentId === a.id).length,
+      )
+      .map((n) => draw(n.id))
+      .join("")}</ul></section>`;
+}
+async function attentionPage() {
+  const { attentions } = await api("/api/attentions");
+  $("#main").innerHTML =
+    heading(
+      "KEEP WORK MOVING",
+      "待你处理",
+      "补充信息或核对不确定的工具结果。回答会单独留痕，随后恢复原请求。",
+      button("刷新", "refresh"),
+    ) +
+    `<div class="item-list">${attentions.map((a) => `<article class="list-card"><div><h3>${esc(a.taskName)} ${badge(a.kind === "reconciliation" ? "工具结果待核对" : "等待回答", "amber")}</h3><p>${esc(a.question)}</p><small class="muted">请求 ${esc(a.run_id.slice(0, 8))} · ${time(a.created_at)}</small></div>${button("查看并回答", "run", "primary", `data-id="${a.run_id}"`)}</article>`).join("") || '<section class="full-panel empty">目前没有等待你处理的事项。</section>'}</div>`;
+}
+async function deliveriesPage() {
+  const { messages } = await api("/api/deliveries");
+  const sessions = Object.entries(state.clientSessions);
+  $("#main").innerHTML =
+    heading(
+      "DELIVERED WITH RECEIPTS",
+      "投递回执",
+      "结果和问题进入持久队列。断线后可以再取；同一消息 ID 重投时应去重。",
+      button("刷新", "refresh"),
+    ) +
+    hint(
+      "接收后处理，再 ACK。未确认的消息在租约到期后重投，NACK 会退避。本页只可确认由本标签页创建并持有凭证的会话消息。",
+    ) +
+    `<section class="full-panel"><div class="form-grid"><div class="field"><label for="delivery-session">本标签页创建的调用方会话</label><select id="delivery-session">${sessions.map(([id, s]) => `<option value="${esc(id)}">${esc(s.label)} · ${esc(id.slice(0, 8))}</option>`).join("")}</select></div><div class="delivery-receive">${button("接收持久消息", "receive-messages", "primary", sessions.length ? "" : "disabled")}</div></div><div class="item-list">${state.received.map((m) => `<article class="list-card"><div><h3>${statusBadge(m.payload.status)} <span class="mono">${esc(m.id.slice(0, 8))}</span> ${badge(`第 ${m.attempt} 次投递`, "blue")}</h3><p>${esc(m.payload.attention?.question || m.payload.result?.summary || m.payload.error || "状态更新")}</p><small>租约至 ${time(m.leaseUntil)} · 请求 ${esc(m.payload.runId.slice(0, 8))}</small></div><div class="actions">${button("稍后重投", "nack-message", "small", `data-id="${m.id}"`)}${button("已处理 · ACK", "ack-message", "small primary", `data-id="${m.id}"`)}</div></article>`).join("")}</div></section><section class="full-panel"><h2>持久队列</h2><div class="table-wrap"><table><thead><tr><th>消息 / 请求</th><th>状态</th><th>投递次数</th><th>创建时间</th></tr></thead><tbody>${messages.map((m) => `<tr><td><span class="mono">${esc(m.id.slice(0, 8))}</span><small class="task-slug">${esc(m.run_id.slice(0, 8))} · ${esc(m.kind)}</small></td><td>${badge(m.state, m.state === "acked" ? "stable" : "amber")}</td><td>${m.attempts}</td><td>${time(m.created_at)}</td></tr>`).join("")}</tbody></table></div></section>`;
 }
 async function knowledgePage() {
   const { proposals } = await api("/api/knowledge");
@@ -386,8 +456,16 @@ function researchPage() {
 }
 async function refresh() {
   state.overview = await api("/api/overview");
+  if (activeInput()) {
+    state.refreshPending = true;
+    return;
+  }
+  state.refreshPending = false;
   nav();
   if (state.page === "home") home();
+  else if (state.page === "graph") await graphPage();
+  else if (state.page === "attention") await attentionPage();
+  else if (state.page === "deliveries") await deliveriesPage();
   else if (state.page === "runs") await runsPage();
   else if (state.page === "knowledge") await knowledgePage();
   else if (state.page === "schedules") await schedulesPage();
@@ -413,6 +491,7 @@ function authPage() {
     `<section class="full-panel auth-page"><h2>连接你的 TaskDock</h2><p class="prose">当前服务启用了 API 认证。输入本机配置的 token，仅保存在当前标签页会话。</p><form id="auth-form">${field("API Token", "auth-token", "", "password")}<button class="button primary" type="submit">连接中台</button><p class="form-error"></p></form></section>`;
 }
 function openModal(content) {
+  state.modalGeneration++;
   clearInterval(state.runTimer);
   $("#modal-body").innerHTML = content;
   if (!$("#modal").open) $("#modal").showModal();
@@ -437,6 +516,7 @@ function renderTaskModal() {
     footer = "";
   if (tab === "overview") {
     content = `<div class="detail-summary"><div>服务状态<b>${t.stable ? `正式版 v${esc(t.stable.version)}` : "草稿待发布"}</b></div><div>执行方式<b>${c.runner === "pi" ? "Pi 模型运行器" : "内置规则 · 无模型推理"}</b></div><div>知识与协作<b>${c.knowledge.length} 条审核知识 · ${c.mode === "team" ? `${c.stages.length} 阶段 Team` : "单 Agent"}</b></div></div><p class="prose">${esc(c.description)}</p><h3 class="subhead">任务规则</h3><pre class="code-block">${esc(c.instructions || "尚未设置任务规则")}</pre><h3 class="subhead">能力组件</h3><div class="tags">${c.skills.map((s) => `<span class="tag">Skill · ${esc(s.name)}</span>`).join("")}${c.mcpServers.map((m) => `<span class="tag">MCP · ${esc(m.name)} · ${m.allowedTools.length} 工具</span>`).join("")}${!c.skills.length && !c.mcpServers.length ? '<span class="muted">暂无附加组件</span>' : ""}</div><h3 class="subhead">审核后的共享知识</h3>${c.knowledge.length ? c.knowledge.map((k) => `<p class="prose">${esc(k.content)}</p>`).join("") : '<p class="prose">尚无共享知识。原始请求不会自动进入这里。</p>'}`;
+    content += `<h3 class="subhead">授权控制</h3><p class="prose">${t.authorization?.enabled === false ? "任务已暂停，新请求和后续执行被阻止。" : "当前授权已启用；每次执行仍受请求 Mandate 限制。"}</p>${button(t.authorization?.enabled === false ? "恢复任务授权" : "暂停任务授权", "toggle-authorization", "small", `data-enabled="${t.authorization?.enabled === false}"`)}`;
     footer = `<span class="hint">草稿修改不会影响正在运行的正式版请求。</span><div>${button("测试草稿", "task-tab", "", `data-tab="test"`)} ${button("正式调用", "invoke-stable", "primary", `${t.stable ? "" : "disabled"}`)}</div>`;
   }
   if (tab === "edit") {
@@ -468,6 +548,18 @@ function renderTaskModal() {
       `<form id="test-task">${area("本次请求上下文 JSON", "test-json", json(c.sampleInput), "上线检查示例默认缺少实机证据，会如实返回「待补证据」。", 13)}<div class="form-error"></div></form>`;
     footer = `<span class="hint">规则运行器只核对提交证据；不会执行真实服务探测。</span>${button(`${icon("rocket")} 执行草稿测试`, "test-task", "primary")}`;
   }
+  if (tab === "composition") {
+    const candidates = state.overview.tasks.filter(
+      (n) => n.stable && n.id !== t.id,
+    );
+    content =
+      hint(
+        "引用使用子任务的固定正式版。inputMap 明确指定从父请求传哪些字段；不会自动复制全部上下文。修改后需要重新测试父任务。",
+      ) +
+      `${c.origin ? `<p class="prose">派生来源：${esc(c.origin.taskId)} · SHA ${esc(c.origin.digest.slice(0, 12))}</p>` : ""}<div class="item-list" id="child-references">${childRows(c.children || [])}</div><h3 class="subhead">添加共享子任务</h3><form id="child-form"><div class="form-grid"><div class="field"><label for="child-task">已发布的子任务</label><select id="child-task">${candidates.map((n) => `<option value="${esc(n.id)}">${esc(n.name)} · v${esc(n.stable.version)}</option>`).join("")}</select></div>${field("调用 key（在当前父任务内唯一）", "child-key", "shared-check")}</div>${area("输入映射 JSON", "child-map", '{\n  "evidence": "evidence"\n}', "左边是子请求字段，右边是父请求中的字段路径。", 4)}<div class="form-error"></div>${button("保存子任务引用", "add-child", "", candidates.length ? "" : "disabled")}</form><h3 class="subhead">微调后复用</h3><p class="prose">派生为新的独立草稿，原能力和现有父任务保持原版本。</p>${button("派生新任务", "fork-preview", "", t.stable ? "" : "disabled")}`;
+    footer =
+      '<span class="hint">任务图禁止成环；引用和派生都保留版本来源。</span>';
+  }
   if (tab === "versions") {
     content =
       hint(
@@ -482,6 +574,7 @@ function renderTaskModal() {
         ["overview", "概览"],
         ["edit", "基本配置"],
         ["capabilities", "能力与工具"],
+        ["composition", "子任务与派生"],
         ["test", "调试请求"],
         ["versions", "版本与 Git"],
       ]
@@ -536,21 +629,43 @@ function invokeModal() {
 }
 async function runModal(id) {
   const r = await api(`/api/runs/${id}`);
-  const running = ["queued", "running"].includes(r.status);
+  state.currentRun = r;
+  const pending = [
+    "queued",
+    "running",
+    "waiting_human",
+    "waiting_children",
+  ].includes(r.status);
+  const polling = ["queued", "running", "waiting_children"].includes(r.status);
   openModal(
     modalHeader("请求详情", `${esc(r.config.name)} · ${esc(r.id)}`, "history") +
-      `<div class="modal-content"><div id="run-detail">${runContent(r)}</div><div class="modal-error"></div></div><div class="modal-footer"><span class="hint">独立目录：tasks/${esc(r.task_id)}/runs/${esc(r.id.slice(0, 8))}…</span><div>${running ? button("取消请求", "cancel-run", "danger", `data-id="${r.id}"`) : button("归档", "archive-run", "", `data-id="${r.id}"`)} ${button("提取经验提案", "proposal-from-run", "primary", `data-id="${r.id}" data-task="${esc(r.task_id)}"`)}</div></div>`,
+      `<div class="modal-content"><div id="run-detail">${runContent(r)}</div><div class="modal-error"></div></div><div class="modal-footer"><span class="hint">独立目录：tasks/${esc(r.task_id)}/runs/${esc(r.id.slice(0, 8))}…</span><div class="run-actions">${pending ? button("取消请求", "cancel-run", "danger", `data-id="${r.id}"`) + button("撤销授权", "revoke-preview", "", `data-id="${r.id}"`) : button("归档", "archive-run", "", `data-id="${r.id}"`)} ${!pending && !r.mandate.revokedAt && r.status !== "succeeded" ? button("明确重试", "retry-run", "primary", `data-id="${r.id}"`) : ""} ${button("提取经验提案", "proposal-from-run", "", `data-id="${r.id}" data-task="${esc(r.task_id)}"`)}</div></div>`,
   );
-  if (running)
+  const generation = state.modalGeneration;
+  if (polling)
     state.runTimer = setInterval(async () => {
-      if (activeInput()) return;
+      if (
+        activeInput() ||
+        generation !== state.modalGeneration ||
+        !$("#modal").open
+      )
+        return;
       try {
         const updated = await api(`/api/runs/${id}`);
-        if (!["queued", "running"].includes(updated.status)) {
+        if (
+          activeInput() ||
+          generation !== state.modalGeneration ||
+          !$("#modal").open
+        )
+          return;
+        if (
+          !["queued", "running", "waiting_children"].includes(updated.status)
+        ) {
           clearInterval(state.runTimer);
           await runModal(id);
           return;
         }
+        state.currentRun = updated;
         $("#run-detail").innerHTML = runContent(updated);
       } catch (e) {
         toast(e.message, true);
@@ -559,7 +674,47 @@ async function runModal(id) {
 }
 function runContent(r) {
   const result = r.result;
-  return `<div class="run-overview"><div>${statusBadge(r.status)} ${badge(r.channel === "test" ? "草稿测试" : "正式调用", r.channel === "test" ? "amber" : "blue")} ${badge(result?.executionMode === "pi" ? "Pi 模型执行" : result ? "内置规则执行" : "等待结果")}</div><span class="muted mono" style="font-size:10px">SHA ${r.digest.slice(0, 16)}</span></div>${r.error ? hint(esc(r.error), "amber") : ""}${result ? `<p class="prose" style="white-space:pre-wrap">${esc(result.summary)}</p>${result.checks.map((c) => `<div class="check-result"><span>${c.passed ? "✓" : "○"} ${esc(c.label)}</span>${badge(c.passed ? "证据通过" : "待补证据", c.passed ? "stable" : "amber")}</div>`).join("")}<div style="margin-top:16px">${hint(result.limitations.map(esc).join("<br>"))}</div>${result.stages.length ? `<h3 class="subhead">Team 阶段产物</h3>${result.stages.map((s) => `<p class="prose"><b>${esc(s.name)}</b><br><span style="white-space:pre-wrap">${esc(s.output)}</span></p>`).join("")}` : ""}` : ""}<h3 class="subhead">本次请求上下文</h3><pre class="code-block">${esc(json(r.input))}</pre><h3 class="subhead">事件记录</h3><div class="event-list">${r.events.map((e) => `<div class="event"><b>${esc(e.type)}</b> · ${time(e.created_at)}${e.data.label ? `<br>${esc(e.data.label)}` : ""}${e.data.name ? `<br>${esc(e.data.name)}` : ""}</div>`).join("")}</div>`;
+  const attention = (r.attentions || [])
+    .filter((a) => a.status === "open")
+    .map(
+      (a) =>
+        `<section class="attention-card"><h3>${a.kind === "reconciliation" ? "核对工具执行结果" : "等待你补充"}</h3><p class="prose">${esc(a.question)}</p><form id="answer-form-${a.id}">${a.fields
+          .map((f) =>
+            f.type === "text"
+              ? area(
+                  esc(f.label) + (f.required ? " *" : ""),
+                  `answer-${a.id}-${f.id}`,
+                  "",
+                  "",
+                  3,
+                )
+              : `<div class="field"><label for="answer-${a.id}-${f.id}">${esc(f.label)}${f.required ? " *" : ""}</label><select id="answer-${a.id}-${f.id}"><option value="">请选择</option>${(f.type ===
+                "boolean"
+                  ? [
+                      ["true", "是"],
+                      ["false", "否"],
+                    ]
+                  : f.options.map((x) => [
+                      x,
+                      x === "confirmed-not-performed"
+                        ? "已核对：确认未执行，允许重试"
+                        : x === "record-completed"
+                          ? "已核对：执行完成，记录结果"
+                          : x,
+                    ])
+                )
+                  .map(
+                    ([value, label]) =>
+                      `<option value="${esc(value)}">${esc(label)}</option>`,
+                  )
+                  .join("")}</select></div>`,
+          )
+          .join(
+            "",
+          )}<div class="form-error"></div>${button("提交回答并恢复", "answer-attention", "primary", `data-run="${r.id}" data-attention="${a.id}"`)}</form></section>`,
+    )
+    .join("");
+  return `<div class="run-overview"><div>${statusBadge(r.status)} ${badge(r.channel === "test" ? "草稿测试" : "正式调用", r.channel === "test" ? "amber" : "blue")} ${badge(result?.executionMode === "pi" ? "Pi 模型执行" : result?.executionMode === "composition" ? "子任务汇总" : result ? "内置规则执行" : "等待结果")}</div><span class="muted mono" style="font-size:10px">SHA ${r.digest.slice(0, 16)}</span></div>${r.parent_id ? button("返回父请求", "run", "small", `data-id="${r.parent_id}"`) : ""}${r.error ? hint(esc(r.error), "amber") : ""}${attention}${result ? `<p class="prose" style="white-space:pre-wrap">${esc(result.summary)}</p>${(result.checks || []).map((c) => `<div class="check-result"><span>${c.passed ? "✓" : "○"} ${esc(c.label)}</span>${badge(c.passed ? "证据通过" : "待补证据", c.passed ? "stable" : "amber")}</div>`).join("")}<div style="margin-top:16px">${hint((result.limitations || []).map(esc).join("<br>"))}</div>${result.stages?.length ? `<h3 class="subhead">Team 阶段产物</h3>${result.stages.map((s) => `<p class="prose"><b>${esc(s.name)}</b><br><span style="white-space:pre-wrap">${esc(s.output)}</span></p>`).join("")}` : ""}` : ""}${r.children?.length ? `<h3 class="subhead">本次请求的子任务</h3><div class="item-list">${r.children.map((c) => `<div class="list-card"><div><h3>${esc(c.child_key)} · ${statusBadge(c.status)}</h3><small class="mono">${esc(c.task_id)} · ${esc(c.id.slice(0, 8))}</small></div>${button("查看子请求", "run", "small", `data-id="${c.id}"`)}</div>`).join("")}</div>` : ""}<h3 class="subhead">执行尝试</h3><div class="attempt-list">${(r.attempts || []).map((a) => `<div class="event"><b>Attempt ${a.ordinal}</b> · ${esc(a.state)} · ${time(a.started_at)}<small class="task-slug">${esc(a.id.slice(0, 12))}${a.error ? ` · ${esc(a.error)}` : ""}</small></div>`).join("") || '<p class="prose">尚未派工。</p>'}</div><details><summary>本次授权与工具回执</summary><pre class="code-block">${esc(json({ mandate: r.mandate, tools: r.toolCalls }))}</pre></details>${r.attentions?.some((a) => a.status === "answered") ? `<details><summary>已回答事项</summary><pre class="code-block">${esc(json(r.attentions.filter((a) => a.status === "answered")))}</pre></details>` : ""}<h3 class="subhead">本次请求上下文</h3><pre class="code-block">${esc(json(r.input))}</pre><h3 class="subhead">事件记录</h3><div class="event-list">${r.events.map((e) => `<div class="event"><b>${esc(e.type)}</b> · ${time(e.created_at)}${e.data.label ? `<br>${esc(e.data.label)}` : ""}${e.data.name ? `<br>${esc(e.data.name)}` : ""}</div>`).join("")}</div>`;
 }
 function proposalModal(taskId = "", runId = "") {
   openModal(
@@ -625,7 +780,37 @@ async function saveConfig(config) {
   });
   toast("已保存草稿；正式版保持固定版本");
   await refresh();
-  renderTaskModal();
+  // Save responses update only non-editable projections. Keep the actual form
+  // nodes, selection, focus and unsaved typing alive across asynchronous writes.
+  const refs = $("#child-references");
+  if (refs && state.modalTab === "composition")
+    refs.innerHTML = childRows(state.task.draft.children || []);
+  const title = $("#modal .modal-header h2"),
+    sub = $("#modal .modal-header small");
+  if (title) title.textContent = state.task.draft.name;
+  if (sub)
+    sub.textContent = `${state.task.id} · revision ${state.task.revision}`;
+}
+function childRows(children) {
+  return (
+    children
+      .map(
+        (r) =>
+          `<div class="list-card"><div><h3>${esc(r.key)} → ${esc(r.taskId)}</h3><small class="mono">固定 SHA ${esc(r.digest.slice(0, 12))}</small><pre class="code-block">${esc(json(r.inputMap))}</pre></div>${button("移除引用", "remove-child", "small", `data-key="${esc(r.key)}"`)}</div>`,
+      )
+      .join("") || '<p class="prose">当前没有子任务引用。</p>'
+  );
+}
+function forkModal() {
+  const t = state.task;
+  openModal(
+    modalHeader(
+      "派生新任务",
+      `来源 ${esc(t.id)} · v${esc(t.stable.version)}`,
+      "branch",
+    ) +
+      `<div class="modal-content"><form id="fork-form"><div class="form-grid">${field("新任务 ID", "fork-id", `${t.id}-variant`.slice(0, 63))}${field("新任务名称", "fork-name", `${t.draft.name} · 微调版`)}</div>${area("调整执行规则", "fork-instructions", t.stable.config.instructions, "继承来源能力，独立为草稿；仍须测试后发布。", 7)}<div class="form-error"></div></form></div><div class="modal-footer"><span class="hint">保留来源版本与摘要，原任务不被修改。</span>${button("创建派生草稿", "create-fork", "primary")}</div>`,
+  );
 }
 async function action(name, el) {
   switch (name) {
@@ -684,6 +869,65 @@ async function action(name, el) {
     case "save-config":
       await saveConfig(parse("capability-json"));
       break;
+    case "add-child": {
+      const selected = state.overview.tasks.find(
+        (t) => t.id === val("child-task"),
+      );
+      if (!selected?.stable) throw new Error("请先选择一个已发布子任务");
+      await saveConfig({
+        ...state.task.draft,
+        children: [
+          ...(state.task.draft.children || []),
+          {
+            key: val("child-key").trim(),
+            taskId: selected.id,
+            releaseId: selected.stable.id,
+            digest: selected.stable.digest,
+            inputMap: parse("child-map"),
+          },
+        ],
+      });
+      break;
+    }
+    case "remove-child":
+      await saveConfig({
+        ...state.task.draft,
+        children: (state.task.draft.children || []).filter(
+          (c) => c.key !== el.dataset.key,
+        ),
+      });
+      break;
+    case "fork-preview":
+      forkModal();
+      break;
+    case "create-fork": {
+      const task = await api(`/api/tasks/${state.task.id}/fork`, {
+        method: "POST",
+        body: {
+          id: val("fork-id").trim(),
+          name: val("fork-name").trim(),
+          patch: { instructions: val("fork-instructions") },
+        },
+      });
+      await refresh();
+      await taskModal(task.id);
+      toast("已派生为独立草稿，来源版本已留存");
+      break;
+    }
+    case "toggle-authorization":
+      state.task.authorization = await api(
+        `/api/tasks/${state.task.id}/authorization`,
+        {
+          method: "POST",
+          body: {
+            enabled: el.dataset.enabled === "true",
+            reason: "维护者通过控制台调整授权",
+          },
+        },
+      );
+      renderTaskModal();
+      await refresh();
+      break;
     case "test-task": {
       const r = await api(`/api/tasks/${state.task.id}/test`, {
         method: "POST",
@@ -702,6 +946,14 @@ async function action(name, el) {
         method: "POST",
         body: { label: val("invoke-label") },
       });
+      state.clientSessions[session.sessionId] = {
+        token: session.sessionToken,
+        label: val("invoke-label"),
+      };
+      sessionStorage.setItem(
+        "taskdock-demo-sessions",
+        JSON.stringify(state.clientSessions),
+      );
       const r = await api("/api/client/runs", {
         method: "POST",
         sessionToken: session.sessionToken,
@@ -740,6 +992,101 @@ async function action(name, el) {
       });
       await runModal(el.dataset.id);
       break;
+    case "answer-attention": {
+      const attention = state.currentRun.attentions.find(
+        (a) => a.id === el.dataset.attention,
+      );
+      if (!attention) throw new Error("请重新打开请求后回答");
+      const answers = {};
+      for (const f of attention.fields) {
+        const value = val(`answer-${attention.id}-${f.id}`);
+        if (!f.required && value === "") continue;
+        answers[f.id] =
+          f.type === "boolean" && value !== "" ? value === "true" : value;
+      }
+      const answered = await api(
+        `/api/runs/${el.dataset.run}/attentions/${attention.id}/answer`,
+        { method: "POST", body: { answers } },
+      );
+      await runModal(el.dataset.run);
+      toast(
+        answered.status === "waiting_human"
+          ? "回答已保存；仍有待回答事项"
+          : "回答已保存，原请求已重新排队",
+      );
+      break;
+    }
+    case "retry-run":
+      await api(`/api/runs/${el.dataset.id}/retry`, {
+        method: "POST",
+        body: {},
+      });
+      await runModal(el.dataset.id);
+      break;
+    case "revoke-preview":
+      openModal(
+        modalHeader(
+          "撤销本次授权",
+          "同时停止本次请求树中的后续工作。",
+          "shield",
+        ) +
+          `<div class="modal-content">${area("撤销原因", "revoke-reason", "维护者撤销本次请求", "撤销会永久留痕；如需重新授权，请创建新请求。", 3)}<div class="modal-error"></div></div><div class="modal-footer">${button("撤销授权", "confirm-revoke", "danger", `data-id="${el.dataset.id}"`)}</div>`,
+      );
+      break;
+    case "confirm-revoke":
+      await api(`/api/runs/${el.dataset.id}/revoke`, {
+        method: "POST",
+        body: { reason: val("revoke-reason") },
+      });
+      await runModal(el.dataset.id);
+      break;
+    case "receive-messages": {
+      const sessionId = val("delivery-session"),
+        s = state.clientSessions[sessionId];
+      if (!s) throw new Error("本标签页没有这个会话的凭证");
+      const { messages } = await api("/api/client/deliveries/receive", {
+        method: "POST",
+        sessionToken: s.token,
+        body: { limit: 10, leaseSeconds: 30 },
+      });
+      const retained = state.received.filter(
+        (m) =>
+          !messages.some((n) => n.id === m.id) &&
+          Date.parse(m.leaseUntil) > Date.now(),
+      );
+      state.received = [
+        ...retained,
+        ...messages.map((m) => ({ ...m, sessionId })),
+      ];
+      await deliveriesPage();
+      toast(
+        messages.length
+          ? `收到 ${messages.length} 条持久消息`
+          : "当前没有可接收消息；已租出的消息需等待租约到期",
+      );
+      break;
+    }
+    case "ack-message":
+    case "nack-message": {
+      const m = state.received.find((m) => m.id === el.dataset.id);
+      if (!m) throw new Error("请重新接收消息");
+      await api(
+        `/api/client/deliveries/${m.id}/${name === "ack-message" ? "ack" : "nack"}`,
+        {
+          method: "POST",
+          sessionToken: state.clientSessions[m.sessionId].token,
+          body: { receipt: m.receipt },
+        },
+      );
+      state.received = state.received.filter((n) => n.id !== m.id);
+      await deliveriesPage();
+      toast(
+        name === "ack-message"
+          ? "消息已确认，回执已持久保存"
+          : "已安排退避重投",
+      );
+      break;
+    }
     case "archive-run":
       await api(`/api/runs/${el.dataset.id}/archive`, {
         method: "POST",
@@ -900,6 +1247,12 @@ document.addEventListener("input", (e) => {
     filterCards();
   }
 });
+document.addEventListener("focusout", () => {
+  setTimeout(() => {
+    if (state.refreshPending && !activeInput())
+      void refresh().catch((error) => toast(error.message, true));
+  }, 0);
+});
 document.addEventListener("change", async (e) => {
   if (e.target.id === "include-archived") {
     state.archived = e.target.checked;
@@ -923,6 +1276,7 @@ document.addEventListener("submit", async (e) => {
   }
 });
 $("#modal").addEventListener("close", () => {
+  state.modalGeneration++;
   clearInterval(state.runTimer);
 });
 window.addEventListener("hashchange", () => void navigate());

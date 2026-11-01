@@ -1,10 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { inputSchema, slug } from "./schema.js";
+import { inputSchema, slug, authorizationSchema } from "./schema.js";
 
 export function createMcpServer(call) {
   const server = new McpServer(
-    { name: "taskdock", version: "0.1.0" },
+    { name: "taskdock", version: "0.2.0" },
     {
       instructions:
         "Discover task services first. Use a fresh session per parent conversation. Submit only minimal context. Stable only. Never reuse another conversation token.",
@@ -56,6 +56,7 @@ export function createMcpServer(call) {
       input: inputSchema,
       sessionToken: z.string().min(20).max(100),
       idempotencyKey: z.string().min(1).max(160),
+      authorization: authorizationSchema.optional(),
     },
     ({ sessionToken, ...body }) =>
       call("POST", "/api/client/runs", body, sessionToken),
@@ -80,6 +81,63 @@ export function createMcpServer(call) {
     ({ runId, sessionToken }) =>
       call("POST", `/api/client/runs/${runId}/cancel`, {}, sessionToken),
   );
+  register(
+    "taskdock_retry_run",
+    "明确重试自己会话的失败请求，保留版本与证据，仍须满足授权和预算",
+    { runId: z.string().uuid(), sessionToken: z.string().min(20).max(100) },
+    ({ runId, sessionToken }) =>
+      call("POST", `/api/client/runs/${runId}/retry`, {}, sessionToken),
+  );
+  register(
+    "taskdock_answer",
+    "提交问题对应的结构化回答；只传用户明确提供的回答，不据此扩权",
+    {
+      runId: z.string().uuid(),
+      attentionId: z.string().uuid(),
+      answers: z.record(
+        z.string(),
+        z.union([z.string().max(8000), z.boolean()]),
+      ),
+      sessionToken: z.string().min(20).max(100),
+    },
+    ({ runId, attentionId, sessionToken, answers }) =>
+      call(
+        "POST",
+        `/api/client/runs/${runId}/attentions/${attentionId}/answer`,
+        { answers },
+        sessionToken,
+      ),
+  );
+  register(
+    "taskdock_receive",
+    "拉取自己会话的持久消息；按消息 ID 去重，处理后 ACK，租约过期会重投",
+    {
+      sessionToken: z.string().min(20).max(100),
+      limit: z.number().int().min(1).max(20).default(10),
+      leaseSeconds: z.number().int().min(5).max(120).default(30),
+    },
+    ({ sessionToken, ...body }) =>
+      call("POST", "/api/client/deliveries/receive", body, sessionToken),
+  );
+  for (const name of ["ack", "nack"])
+    register(
+      `taskdock_${name}`,
+      name === "ack"
+        ? "确认已处理的消息；回执持久且幂等"
+        : "暂时无法处理消息，退避后重投",
+      {
+        sessionToken: z.string().min(20).max(100),
+        messageId: z.string().uuid(),
+        receipt: z.string().min(20).max(100),
+      },
+      ({ sessionToken, messageId, receipt }) =>
+        call(
+          "POST",
+          `/api/client/deliveries/${messageId}/${name}`,
+          { receipt },
+          sessionToken,
+        ),
+    );
   return server;
 }
 

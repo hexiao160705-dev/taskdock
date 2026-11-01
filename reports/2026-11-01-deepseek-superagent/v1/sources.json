@@ -1,0 +1,285 @@
+{
+  "as_of": "2026-11-01",
+  "commit": "6337fc823ce20251c8de8085948165c81aaa701e",
+  "evidence": [
+    {
+      "id": "U1",
+      "claim": "用户目标：以任务类型为对象的可复用 Agent 服务；请求隔离；版本、学习、本地与共享云闭环。",
+      "kind": "user_report",
+      "source": "TaskDock 工作区 docs/ARCHITECTURE.md:5",
+      "as_of": "2026-11-01",
+      "scope": "本次读取工作区 docs/ARCHITECTURE.md",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "T1",
+      "claim": "现有 TaskDock 有任务配置、MCP HTTP/stdio、会话 capability 与固定正式版本。",
+      "kind": "fact",
+      "source": "TaskDock 工作区 src/mcp.js:5",
+      "as_of": "2026-11-01",
+      "scope": "本次读取工作区 src/mcp.js",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "T2",
+      "claim": "晋级要求当前能力 digest 的成功草稿测试，并生成真实 Git commit/tag。",
+      "kind": "fact",
+      "source": "TaskDock 工作区 src/store.js:139",
+      "as_of": "2026-11-01",
+      "scope": "本次读取工作区 src/store.js",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "T3",
+      "claim": "Pi 使用新 session 与显式工具集，Team 串行；规则模式明确 deterministic。",
+      "kind": "fact",
+      "source": "TaskDock 工作区 src/runner.js:66",
+      "as_of": "2026-11-01",
+      "scope": "本次读取工作区 src/runner.js",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "T4",
+      "claim": "学习是预定义规则产生提案，审核更新草稿；不是模型自主学习闭环。",
+      "kind": "fact",
+      "source": "TaskDock 工作区 src/runner.js:329",
+      "as_of": "2026-11-01",
+      "scope": "本次读取工作区 src/runner.js",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "T5",
+      "claim": "能力导出严格筛选并移除 MCP 连接/示例请求，Registry 是独立本机服务。",
+      "kind": "fact",
+      "source": "TaskDock 工作区 src/schema.js:171",
+      "as_of": "2026-11-01",
+      "scope": "本次读取工作区 src/schema.js",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "T6",
+      "claim": "当前运行队列在内存；重启将未结束请求标为 interrupted，不自动重放。",
+      "kind": "fact",
+      "source": "TaskDock 工作区 src/store.js:28",
+      "as_of": "2026-11-01",
+      "scope": "本次读取工作区 src/store.js",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "T7",
+      "claim": "目前 plan 是关键词匹配建议，上层仍负责分解；不是语义规划器。",
+      "kind": "fact",
+      "source": "TaskDock 工作区 src/app.js:204",
+      "as_of": "2026-11-01",
+      "scope": "本次读取工作区 src/app.js",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "D1",
+      "claim": "官方定位是面向一个 GitHub 仓库的主动 coding agent；研究原型，非正式产品；文章愿景不等于原型实现。",
+      "kind": "fact",
+      "source": "https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/README.md#L3",
+      "as_of": "2026-11-01",
+      "scope": "README.md，本次固定提交 6337fc823ce2",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "D2",
+      "claim": "核心目标是尽量减少人的注意力成本；只按请求或书面规则行动，发言以可操作价值为准。",
+      "kind": "fact",
+      "source": "https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/docs/000-philosophy.md#L5",
+      "as_of": "2026-11-01",
+      "scope": "docs/000-philosophy.md，本次固定提交 6337fc823ce2",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "D3",
+      "claim": "领域链条是 Source/Trigger/Thread/Eval/Mandate/Ticket/Assignment/Executor/Channel；Ticket 是工作实例。",
+      "kind": "fact",
+      "source": "https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/core/model.ts#L23",
+      "as_of": "2026-11-01",
+      "scope": "src/core/model.ts，本次固定提交 6337fc823ce2",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "D4",
+      "claim": "确定性 Gate 与模型 Assessment 分层；主动接单须规则与意图证据，observe 默认只记录 would_accept。",
+      "kind": "fact",
+      "source": "https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/policy.ts#L40",
+      "as_of": "2026-11-01",
+      "scope": "src/policy.ts，本次固定提交 6337fc823ce2",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "D5",
+      "claim": "事件 intake 按稳定 Trigger ID 去重，并按 Subscription 投递上下文；相关性本身不等于路由。",
+      "kind": "fact",
+      "source": "https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/core/intake.ts#L23",
+      "as_of": "2026-11-01",
+      "scope": "src/core/intake.ts，本次固定提交 6337fc823ce2",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "D6",
+      "claim": "每 Ticket 使用自己的持久 worker Session 与目录；可重试、恢复与接收后续输入。",
+      "kind": "fact",
+      "source": "https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/executor/dsh.ts#L24",
+      "as_of": "2026-11-01",
+      "scope": "src/executor/dsh.ts，本次固定提交 6337fc823ce2",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "D7",
+      "claim": "worker 的读取工具会限制到其 Ticket，隐藏别的 Ticket/Decision；这属于应用层边界。",
+      "kind": "fact",
+      "source": "https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/app/resources.ts#L144",
+      "as_of": "2026-11-01",
+      "scope": "src/app/resources.ts，本次固定提交 6337fc823ce2",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "D8",
+      "claim": "原型以操作者 OS 用户运行、danger-full-access；工作目录和账户 wrapper 不是 OS 沙箱。",
+      "kind": "fact",
+      "source": "https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/docs/006-deployment.md#L19",
+      "as_of": "2026-11-01",
+      "scope": "docs/006-deployment.md，本次固定提交 6337fc823ce2",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "D9",
+      "claim": "提示词有不可变历史版本，但每次模型请求取最新配置；保存不要求先测后发布。",
+      "kind": "fact",
+      "source": "https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/docs/004-prompts.md#L95",
+      "as_of": "2026-11-01",
+      "scope": "docs/004-prompts.md，本次固定提交 6337fc823ce2",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "D10",
+      "claim": "Effects 在业务事务内持久化副作用任务，提交后执行，支持退避、顺序与恢复。",
+      "kind": "fact",
+      "source": "https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/app/effects.ts#L43",
+      "as_of": "2026-11-01",
+      "scope": "src/app/effects.ts，本次固定提交 6337fc823ce2",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "D11",
+      "claim": "Outbox 将消息回执与 reply effect 原子保存，再发送并记录状态。",
+      "kind": "fact",
+      "source": "https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/app/outbox.ts#L27",
+      "as_of": "2026-11-01",
+      "scope": "src/app/outbox.ts，本次固定提交 6337fc823ce2",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "D12",
+      "claim": "结构化 Ticket stage 优先显示待人答复/审核/受阻；ready 不是所有情况下都代表工作终结。",
+      "kind": "fact",
+      "source": "https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/core/stage.ts#L9",
+      "as_of": "2026-11-01",
+      "scope": "src/core/stage.ts，本次固定提交 6337fc823ce2",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "D13",
+      "claim": "SourceRegistry 注册的是事件来源插件及实例，不是任务能力市场。",
+      "kind": "fact",
+      "source": "https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/sources/registry.ts#L1",
+      "as_of": "2026-11-01",
+      "scope": "src/sources/registry.ts，本次固定提交 6337fc823ce2",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "D14",
+      "claim": "core/memory.ts 是测试/临时 Engine 的 Map 仓储，不是 Agent 学习记忆模块。",
+      "kind": "fact",
+      "source": "https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/core/memory.ts#L1",
+      "as_of": "2026-11-01",
+      "scope": "src/core/memory.ts，本次固定提交 6337fc823ce2",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "D15",
+      "claim": "依赖 DeepSeek Harness/Cordis 的宿主能力，以 bundle 接入；换 harness 不只是改模型 API。",
+      "kind": "fact",
+      "source": "https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/package.json#L62",
+      "as_of": "2026-11-01",
+      "scope": "package.json，本次固定提交 6337fc823ce2",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "D16",
+      "claim": "管理路由限 loopback 与同源；原型未展示面向任意父客户端的任务目录 MCP 服务。",
+      "kind": "fact",
+      "source": "https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/app/http.ts#L1",
+      "as_of": "2026-11-01",
+      "scope": "src/app/http.ts，本次固定提交 6337fc823ce2",
+      "limits": "结合 MCP/能力目录相关全仓检索与接口阅读；未发现不能证明永远不可能支持"
+    },
+    {
+      "id": "D17",
+      "claim": "暂停/恢复、Policy 变化与恢复前授权复核有单独语义；不应把上下文当成新授权。",
+      "kind": "fact",
+      "source": "https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/docs/002-authorization.md#L107",
+      "as_of": "2026-11-01",
+      "scope": "docs/002-authorization.md，本次固定提交 6337fc823ce2",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "D18",
+      "claim": "开发者可实现 SourceKind 扩展触发来源；等待条件属于 Source 而非 Eval。",
+      "kind": "fact",
+      "source": "https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/docs/008-cookbook.md#L21",
+      "as_of": "2026-11-01",
+      "scope": "docs/008-cookbook.md，本次固定提交 6337fc823ce2",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "D19",
+      "claim": "面板先回答是否需要人、系统是否健康、单个工作的历史。",
+      "kind": "fact",
+      "source": "https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/docs/005-panel.md#L5",
+      "as_of": "2026-11-01",
+      "scope": "docs/005-panel.md，本次固定提交 6337fc823ce2",
+      "limits": "代码/文档核对；不等于真实模型或线上业务验收"
+    },
+    {
+      "id": "V1",
+      "claim": "本机执行官方 pnpm check：类型检查、59 个文件的 1197 项测试、构建均通过；client CJS/ESM 建议警告保留。",
+      "kind": "fact",
+      "source": "output/research/deepseek-check.log",
+      "as_of": "2026-11-01",
+      "scope": "固定提交 6337fc823ce20251c8de8085948165c81aaa701e；Node 24；依赖按 frozen-lockfile 安装且 ignore-scripts",
+      "limits": "单元/组件/宿主替身测试与构建；没有安装生产 profile，没有真实模型或 GitHub/飞书写入 E2E"
+    },
+    {
+      "id": "V2",
+      "claim": "本机重新执行 TaskDock npm test：26 项通过，包含模拟模型的 Pi 契约。",
+      "kind": "fact",
+      "source": "output/research/taskdock-check.log",
+      "as_of": "2026-11-01",
+      "scope": "现有 TaskDock 0.1.0 工作区",
+      "limits": "不是模型效果证明；两项目测试数量和覆盖面不同，不能按数量排名"
+    },
+    {
+      "id": "H1",
+      "claim": "建议保留 TaskDock 产品与契约，吸收领域模型、持久副作用、授权与人工等待语义，DSH 作为可选适配实验。",
+      "kind": "hypothesis",
+      "source": "本次跨项目代码审查与用户目标推导",
+      "as_of": "2026-11-01",
+      "scope": "任务类型服务平台优先的目标",
+      "limits": "不是已实现集成；成本、性能、模型质量和适配收益尚须同题实验"
+    },
+    {
+      "id": "N1",
+      "claim": "未进行真实模型与真实账户的端到端联调；未证明云端多租户、恶意插件沙箱或自主学习质量。",
+      "kind": "unknown",
+      "source": "本次执行边界",
+      "as_of": "2026-11-01",
+      "scope": "DeepSeek 原型及当前 TaskDock",
+      "limits": "不能据此断言其不可用，也不能反向宣称生产可用"
+    }
+  ]
+}

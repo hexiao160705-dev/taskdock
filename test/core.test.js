@@ -160,7 +160,7 @@ test("stable publication requires successful test of the exact draft digest", ()
       store.git(t.id, ["show", `${t.stable.git_sha}:task.json`]),
       JSON.stringify(t.draft, null, 2),
     );
-    assert.equal(store.git(t.id, ["tag", "--list"]), "v0.1.0");
+    assert.equal(store.git(t.id, ["tag", "--list"]), "v0.2.0");
   }));
 test("draft changes cannot mutate queued stable requests; real Git rollback", () =>
   fixture(async ({ store, executor }) => {
@@ -176,7 +176,7 @@ test("draft changes cannot mutate queued stable requests; real Git rollback", ()
     executor.submit({ taskId: t.id, input: passInput, channel: "test" });
     await executor.idle();
     t = store.promote(t.id);
-    assert.equal(t.stable.version, "0.1.1");
+    assert.equal(t.stable.version, "0.2.1");
     assert.equal(store.run(run.id).config.name, seeds[0].name);
     assert.equal(store.run(run.id).digest, original.digest);
     t = store.rollback(t.id, original.id);
@@ -376,7 +376,7 @@ test("timeout is enforced and sensitive error text is redacted", () =>
         input: {},
       });
       await executor.idle();
-      assert.equal(store.run(r.id).status, "cancelled");
+      assert.equal(store.run(r.id).status, "failed");
       assert.ok(store.run(r.id).error.includes("超时"));
     },
     {
@@ -403,7 +403,7 @@ test("restart interrupts unfinished runs without replaying side effects", async 
     store.close();
     store = new Store(dir);
     assert.equal(store.run(run.id).status, "interrupted");
-    assert.ok(store.run(run.id).error.includes("未自动重放"));
+    assert.ok(store.run(run.id).error.includes("需明确重试"));
   } finally {
     store.close();
     rmSync(dir, { recursive: true, force: true });

@@ -17,10 +17,12 @@ import {
   digest,
   publicBundle,
   fail,
+  slug,
 } from "./schema.js";
 import { seeds } from "./seeds.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+const APP_VERSION = "0.2.0";
 const same = (a, b) => {
   const left = Buffer.from(a),
     right = Buffer.from(b);
@@ -166,13 +168,25 @@ export async function createApp({
     const { session_id, idem_key, ...safe } = run;
     return safe;
   };
+  const answerBody = z
+    .object({
+      answers: z.record(
+        z.string(),
+        z.union([z.string().max(8000), z.boolean()]),
+      ),
+    })
+    .strict();
+  const runId = (req) => z.string().uuid().parse(req.params.id);
+  const ownedRun = (req) => store.run(runId(req), session(req).id);
+  const attentionId = (req) => z.string().uuid().parse(req.params.attentionId);
   app.get("/health", (_req, res) =>
     res.json({
       status: "ok",
-      version: "0.1.0",
+      version: APP_VERSION,
       service: "taskdock",
       pid: process.pid,
       instance: digest(store.root).slice(0, 16),
+      archivePending: store.pendingWrites.size,
     }),
   );
   app.get("/api/client/search", (req, res) =>
@@ -246,12 +260,64 @@ export async function createApp({
     );
     res.json(clientRun(executor.cancel(run.id)));
   });
+  app.post("/api/client/runs/:id/retry", (req, res) => {
+    const r = ownedRun(req);
+    res
+      .status(202)
+      .json(clientRun(executor.retry(r.id, `session:${r.session_id}`)));
+  });
+  app.post(
+    "/api/client/runs/:id/attentions/:attentionId/answer",
+    (req, res) => {
+      const r = ownedRun(req);
+      res
+        .status(202)
+        .json(
+          clientRun(
+            executor.answer(
+              r.id,
+              attentionId(req),
+              answerBody.parse(req.body).answers,
+              `session:${r.session_id}`,
+            ),
+          ),
+        );
+    },
+  );
+  app.post("/api/client/deliveries/receive", (req, res) => {
+    const options = z
+      .object({
+        limit: z.number().int().min(1).max(20).default(10),
+        leaseSeconds: z.number().int().min(5).max(120).default(30),
+      })
+      .strict()
+      .parse(req.body || {});
+    res.json({
+      messages: store.receive(session(req).id, options),
+      semantics: "at-least-once; deduplicate by message ID",
+    });
+  });
+  for (const action of ["ack", "nack"])
+    app.post(`/api/client/deliveries/:id/${action}`, (req, res) => {
+      const { receipt } = z
+        .object({ receipt: z.string().min(20).max(100) })
+        .strict()
+        .parse(req.body);
+      res.json(
+        store.settleDelivery(
+          session(req).id,
+          runId(req),
+          receipt,
+          action === "nack",
+        ),
+      );
+    });
   app.get("/api/overview", (_req, res) => {
     const tasks = store.tasks(),
       runs = store.runs(),
       proposals = store.proposals();
     res.json({
-      version: "0.1.0",
+      version: APP_VERSION,
       tasks: tasks.map((t) => ({
         id: t.id,
         ...t.draft,
@@ -265,6 +331,7 @@ export async function createApp({
             }
           : null,
         hasChanges: t.stable?.digest !== digest(t.draft),
+        authorization: store.control(t.id),
         runs: runs.filter((r) => r.task_id === t.id).length,
       })),
       runs: runs.slice(0, 8),
@@ -272,8 +339,13 @@ export async function createApp({
         tasks: tasks.length,
         published: tasks.filter((t) => t.stable).length,
         runs: runs.length,
-        active: runs.filter((r) => ["queued", "running"].includes(r.status))
-          .length,
+        active: runs.filter((r) =>
+          ["queued", "running", "waiting_children"].includes(r.status),
+        ).length,
+        waitingHuman: runs.filter((r) => r.status === "waiting_human").length,
+        deliveries: store.db
+          .prepare("SELECT state,count(*) AS count FROM outbox GROUP BY state")
+          .all(),
         pending: proposals.filter((p) => p.status === "pending").length,
       },
       runtime: {
@@ -288,6 +360,28 @@ export async function createApp({
     });
   });
   app.get("/api/tasks", (_req, res) => res.json({ tasks: store.tasks() }));
+  app.get("/api/task-graph", (_req, res) => res.json(store.taskGraph()));
+  app.post("/api/tasks/:id/fork", (req, res) => {
+    const body = z
+      .object({
+        id: slug,
+        name: z.string().min(1).max(80),
+        patch: z.record(z.string(), z.unknown()).default({}),
+      })
+      .strict()
+      .parse(req.body);
+    res.status(201).json(store.forkTask(req.params.id, body));
+  });
+  app.post("/api/tasks/:id/authorization", (req, res) => {
+    const { enabled, reason } = z
+      .object({
+        enabled: z.boolean(),
+        reason: z.string().max(1000).default(""),
+      })
+      .strict()
+      .parse(req.body);
+    res.json(store.setControl(req.params.id, enabled, reason));
+  });
   app.post("/api/tasks", (req, res) =>
     res.status(201).json(store.createTask(taskSchema.parse(req.body))),
   );
@@ -295,6 +389,7 @@ export async function createApp({
     res.json({
       ...store.task(req.params.id),
       summary: store.summary(req.params.id),
+      authorization: store.control(req.params.id),
     }),
   );
   app.put("/api/tasks/:id/draft", (req, res) => {
@@ -335,6 +430,50 @@ export async function createApp({
   );
   app.post("/api/runs/:id/cancel", (req, res) =>
     res.json(executor.cancel(z.string().uuid().parse(req.params.id))),
+  );
+  app.post("/api/runs/:id/retry", (req, res) =>
+    res.status(202).json(executor.retry(runId(req))),
+  );
+  app.post("/api/runs/:id/revoke", (req, res) => {
+    const { reason } = z
+      .object({ reason: z.string().min(1).max(1000) })
+      .strict()
+      .parse(req.body);
+    res.json(executor.revoke(runId(req), reason));
+  });
+  app.post("/api/runs/:id/attentions/:attentionId/answer", (req, res) =>
+    res
+      .status(202)
+      .json(
+        executor.answer(
+          runId(req),
+          attentionId(req),
+          answerBody.parse(req.body).answers,
+        ),
+      ),
+  );
+  app.get("/api/deliveries", (_req, res) =>
+    res.json({
+      messages: store.db
+        .prepare(
+          "SELECT id,run_id,session_id,kind,state,attempts,created_at,lease_until,acked_at FROM outbox ORDER BY created_at DESC,rowid DESC LIMIT 250",
+        )
+        .all(),
+    }),
+  );
+  app.get("/api/attentions", (_req, res) =>
+    res.json({
+      attentions: store.db
+        .prepare(
+          "SELECT a.*,t.draft FROM attentions a JOIN runs r ON r.id=a.run_id JOIN tasks t ON t.id=r.task_id WHERE a.status='open' AND r.status='waiting_human' ORDER BY a.created_at LIMIT 200",
+        )
+        .all()
+        .map(({ draft, ...a }) => ({
+          ...a,
+          fields: JSON.parse(a.fields),
+          taskName: JSON.parse(draft).name,
+        })),
+    }),
   );
   app.post("/api/runs/:id/archive", (req, res) => {
     store.archive(z.string().uuid().parse(req.params.id));
@@ -440,6 +579,11 @@ export async function createApp({
       id,
       mcpServers: [],
       sampleInput: {},
+      model: {
+        provider: "openai",
+        name: "gpt-4.1-mini",
+        apiKeyEnv: "TASKDOCK_IMPORTED_MODEL_KEY",
+      },
     });
     const result = store.createTask(task);
     store.audit("registry.installed", id, {
@@ -449,7 +593,7 @@ export async function createApp({
     res.status(201).json({
       ...result,
       notice:
-        "已安装为草稿；外部 MCP 已移除。请复核规则与模型配置，完成测试后发布。",
+        "已安装为草稿；外部 MCP 与模型密钥引用已移除。Pi 需显式配置本机模型。请复核并测试后发布。",
     });
   });
   app.get("/api/audit", (_req, res) =>

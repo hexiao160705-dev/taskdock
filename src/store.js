@@ -1,10 +1,21 @@
 import { DatabaseSync } from "node:sqlite";
-import { mkdirSync, writeFileSync, renameSync, readFileSync } from "node:fs";
+import {
+  mkdirSync,
+  writeFileSync,
+  renameSync,
+  readFileSync,
+  chmodSync,
+} from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { taskSchema, digest, fail, token, canonical } from "./schema.js";
 import { CronExpressionParser } from "cron-parser";
+import {
+  initializeReliability,
+  reliabilityMethods,
+  terminal,
+} from "./reliability.js";
 
 const now = () => new Date().toISOString();
 export class Store {
@@ -13,7 +24,7 @@ export class Store {
     mkdirSync(this.root, { recursive: true, mode: 0o700 });
     this.db = new DatabaseSync(path.join(this.root, "local.sqlite"));
     this.db
-      .exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;
+      .exec(`PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;
       CREATE TABLE IF NOT EXISTS tasks(id TEXT PRIMARY KEY, draft TEXT NOT NULL, revision INTEGER NOT NULL, stable_id TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS releases(id TEXT PRIMARY KEY, task_id TEXT NOT NULL REFERENCES tasks(id), version TEXT NOT NULL, config TEXT NOT NULL, digest TEXT NOT NULL, git_sha TEXT NOT NULL, created_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS sessions(id TEXT PRIMARY KEY, token_hash TEXT UNIQUE NOT NULL, label TEXT NOT NULL, created_at TEXT NOT NULL);
@@ -22,10 +33,11 @@ export class Store {
       CREATE TABLE IF NOT EXISTS proposals(id TEXT PRIMARY KEY,task_id TEXT NOT NULL REFERENCES tasks(id),run_id TEXT REFERENCES runs(id),content TEXT NOT NULL,status TEXT NOT NULL,created_at TEXT NOT NULL,reviewed_at TEXT);
       CREATE TABLE IF NOT EXISTS schedules(id TEXT PRIMARY KEY,task_id TEXT NOT NULL REFERENCES tasks(id),name TEXT NOT NULL,cron TEXT NOT NULL,timezone TEXT NOT NULL,input TEXT NOT NULL,enabled INTEGER NOT NULL,next_run_at TEXT NOT NULL,last_run_at TEXT,last_run_id TEXT);
       CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY AUTOINCREMENT,type TEXT NOT NULL,task_id TEXT,data TEXT NOT NULL,created_at TEXT NOT NULL);`);
-    for (const row of this.db
-      .prepare("SELECT id FROM runs WHERE status IN ('queued','running')")
-      .all())
-      this.finish(row.id, "interrupted", null, "服务重启，未自动重放请求");
+    chmodSync(path.join(this.root, "local.sqlite"), 0o600);
+    initializeReliability(this);
+    this.pendingWrites = new Map();
+    for (const row of this.db.prepare("SELECT id FROM runs").all())
+      this.materializeRun(row.id);
     const schedules = this.db
       .prepare("SELECT * FROM schedules WHERE enabled=1")
       .all();
@@ -41,15 +53,40 @@ export class Store {
       }
   }
   transaction(fn) {
-    this.db.exec("BEGIN IMMEDIATE");
+    const level = this.transactionDepth || 0;
+    this.transactionDepth = level + 1;
+    const savepoint = `td_${level}`;
+    this.writeStack ||= [];
+    const writes = new Map();
+    this.writeStack.push(writes);
+    let started = false,
+      r;
     try {
-      const r = fn();
-      this.db.exec("COMMIT");
-      return r;
+      this.db.exec(level ? `SAVEPOINT ${savepoint}` : "BEGIN IMMEDIATE");
+      started = true;
+      r = fn();
+      this.db.exec(level ? `RELEASE ${savepoint}` : "COMMIT");
     } catch (e) {
-      this.db.exec("ROLLBACK");
+      if (started) {
+        if (level) {
+          this.db.exec(`ROLLBACK TO ${savepoint}`);
+          this.db.exec(`RELEASE ${savepoint}`);
+        } else this.db.exec("ROLLBACK");
+      }
       throw e;
+    } finally {
+      this.transactionDepth = level;
+      this.writeStack.pop();
     }
+    if (level)
+      for (const [file, value] of writes)
+        this.writeStack.at(-1).set(file, value);
+    else {
+      this.pendingWrites ||= new Map();
+      for (const [file, value] of writes) this.pendingWrites.set(file, value);
+      this.flushWrites();
+    }
+    return r;
   }
   audit(type, taskId, data) {
     this.db
@@ -65,10 +102,70 @@ export class Store {
     return path.join(this.root, "tasks", taskId, "runs", runId);
   }
   write(file, value) {
+    if (this.writeStack?.length) {
+      this.writeStack.at(-1).set(file, structuredClone(value));
+      return;
+    }
+    try {
+      this.writeNow(file, value);
+      this.pendingWrites?.delete(file);
+    } catch (error) {
+      this.pendingWrites?.set(file, structuredClone(value));
+      throw error;
+    }
+  }
+  writeNow(file, value) {
     mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
     const temp = `${file}.${randomUUID()}.tmp`;
     writeFileSync(temp, JSON.stringify(value, null, 2) + "\n", { mode: 0o600 });
     renameSync(temp, file);
+  }
+  flushWrites() {
+    for (const [file, value] of this.pendingWrites || [])
+      try {
+        this.writeNow(file, value);
+        this.pendingWrites.delete(file);
+      } catch {
+        /* DB remains authoritative; retry and rebuild after restart. */
+      }
+  }
+  materializeRun(id) {
+    const r = this.run(id),
+      dir = this.dir(r.task_id, id);
+    const values = {
+      "request.json": {
+        id,
+        taskId: r.task_id,
+        input: r.input,
+        source: r.source,
+        channel: r.channel,
+        createdAt: r.created_at,
+        parentId: r.parent_id,
+        rootId: r.root_id,
+      },
+      "capability.json": {
+        config: r.config,
+        digest: r.digest,
+        graph: r.graph,
+        releaseId: r.release_id,
+      },
+      "mandate.json": r.mandate,
+      "events.json": r.events,
+      "attentions.json": r.attentions,
+      "result.json": {
+        status: r.status,
+        result: r.result,
+        error: r.error,
+        finishedAt: r.finished_at,
+      },
+    };
+    for (const [file, value] of Object.entries(values)) {
+      try {
+        this.writeNow(path.join(dir, file), value);
+      } catch {
+        this.pendingWrites.set(path.join(dir, file), value);
+      }
+    }
   }
   git(id, args) {
     return execFileSync("git", ["-C", this.repo(id), ...args], {
@@ -85,6 +182,7 @@ export class Store {
   }
   createTask(value) {
     const t = taskSchema.parse(value);
+    this.graphFor(t);
     if (this.db.prepare("SELECT id FROM tasks WHERE id=?").get(t.id))
       fail(409, "任务 ID 已存在");
     mkdirSync(this.repo(t.id), { recursive: true, mode: 0o700 });
@@ -113,6 +211,14 @@ export class Store {
       releases,
       createdAt: t.created_at,
       updatedAt: t.updated_at,
+      authorization: (() => {
+        const c = this.db
+          .prepare("SELECT * FROM task_controls WHERE task_id=?")
+          .get(id);
+        return c
+          ? { ...c, enabled: !!c.enabled }
+          : { enabled: true, revision: 1, reason: "" };
+      })(),
     };
   }
   tasks() {
@@ -126,6 +232,7 @@ export class Store {
     if (t.revision !== revision) fail(409, "草稿已被其他操作更新，请重新加载");
     const config = taskSchema.parse(value);
     if (config.id !== id) fail(422, "任务 ID 不可修改");
+    this.graphFor(config);
     this.write(path.join(this.repo(id), "task.json"), config);
     const r = this.db
       .prepare(
@@ -147,7 +254,8 @@ export class Store {
     if (!proof)
       fail(409, "当前草稿没有通过测试。请使用完整证据测试当前版本后晋级");
     if (t.stable?.digest === hash) fail(409, "当前草稿已是正式版");
-    const version = `0.1.${t.releases.length}`,
+    const graph = this.graphFor(t.draft);
+    const version = `0.2.${t.releases.length}`,
       releaseId = randomUUID();
     this.write(path.join(this.repo(id), "task.json"), t.draft);
     this.git(id, ["add", "task.json"]);
@@ -161,7 +269,9 @@ export class Store {
     this.git(id, ["tag", `v${version}`]);
     this.transaction(() => {
       this.db
-        .prepare("INSERT INTO releases VALUES(?,?,?,?,?,?,?)")
+        .prepare(
+          "INSERT INTO releases(id,task_id,version,config,digest,git_sha,created_at,graph) VALUES(?,?,?,?,?,?,?,?)",
+        )
         .run(
           releaseId,
           id,
@@ -170,6 +280,7 @@ export class Store {
           hash,
           gitSha,
           now(),
+          JSON.stringify(graph),
         );
       this.db
         .prepare("UPDATE tasks SET stable_id=?,updated_at=? WHERE id=?")
@@ -217,67 +328,8 @@ export class Store {
     if (!s) fail(401, "无效的会话凭证");
     return s;
   }
-  createRun({
-    taskId,
-    input,
-    sessionId = "maintenance",
-    source = "console",
-    channel = "stable",
-    idempotencyKey = randomUUID(),
-  }) {
-    const t = this.task(taskId),
-      config = channel === "test" ? t.draft : t.stable?.config;
-    if (!config) fail(409, "该任务尚未发布正式版");
-    const existing = this.db
-      .prepare(
-        "SELECT id,input,channel FROM runs WHERE session_id=? AND task_id=? AND idem_key=?",
-      )
-      .get(sessionId, taskId, idempotencyKey);
-    if (existing) {
-      if (
-        canonical(JSON.parse(existing.input)) !== canonical(input) ||
-        existing.channel !== channel
-      )
-        fail(409, "幂等键已用于不同请求");
-      return { run: this.run(existing.id), created: false };
-    }
-    const id = randomUUID(),
-      hash = digest(config);
-    const createdAt = now();
-    this.db
-      .prepare(
-        "INSERT INTO runs(id,task_id,session_id,source,channel,release_id,digest,config,input,status,idem_key,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
-      )
-      .run(
-        id,
-        taskId,
-        sessionId,
-        source,
-        channel,
-        channel === "test" ? null : t.stable.id,
-        hash,
-        JSON.stringify(config),
-        JSON.stringify(input),
-        "queued",
-        idempotencyKey,
-        createdAt,
-      );
-    const dir = this.dir(taskId, id);
-    this.write(path.join(dir, "request.json"), {
-      id,
-      taskId,
-      input,
-      source,
-      channel,
-      createdAt,
-    });
-    this.write(path.join(dir, "capability.json"), {
-      config,
-      digest: hash,
-      releaseId: channel === "test" ? null : t.stable.id,
-    });
-    this.event(id, "queued", { channel, digest: hash });
-    return { run: this.run(id), created: true };
+  createRun(options) {
+    return this.createDurableRun(options);
   }
   run(id, sessionId) {
     const row = this.db.prepare("SELECT * FROM runs WHERE id=?").get(id);
@@ -288,6 +340,7 @@ export class Store {
       input: JSON.parse(row.input),
       config: JSON.parse(row.config),
       result: row.result ? JSON.parse(row.result) : null,
+      ...this.runDetails(id),
       events: this.db
         .prepare(
           "SELECT seq,type,data,created_at FROM events WHERE run_id=? ORDER BY seq",
@@ -299,7 +352,7 @@ export class Store {
   runs({ sessionId, includeArchived = false } = {}) {
     return this.db
       .prepare(
-        `SELECT id,task_id,session_id,source,channel,digest,status,error,archived,created_at,finished_at FROM runs WHERE (? IS NULL OR session_id=?) AND (?=1 OR archived=0) ORDER BY created_at DESC,rowid DESC LIMIT 250`,
+        `SELECT id,task_id,session_id,source,channel,digest,status,error,archived,created_at,finished_at,parent_id,root_id,child_key FROM runs WHERE (? IS NULL OR session_id=?) AND (?=1 OR archived=0) ORDER BY created_at DESC,rowid DESC LIMIT 250`,
       )
       .all(sessionId || null, sessionId || null, includeArchived ? 1 : 0);
   }
@@ -333,27 +386,7 @@ export class Store {
     return !!r.changes;
   }
   finish(id, status, result, error = null) {
-    const r = this.db
-      .prepare(
-        "UPDATE runs SET status=?,result=?,error=?,finished_at=? WHERE id=? AND status IN ('queued','running')",
-      )
-      .run(status, result ? JSON.stringify(result) : null, error, now(), id);
-    if (!r.changes) return;
-    this.event(
-      id,
-      status,
-      result
-        ? { verdict: result.verdict, executionMode: result.executionMode }
-        : { error },
-    );
-    const run = this.run(id);
-    this.write(path.join(this.dir(run.task_id, id), "result.json"), {
-      status,
-      result,
-      error,
-      finishedAt: run.finished_at,
-    });
-    this.summary(run.task_id);
+    return this.completeRun(id, status, result, error);
   }
   summary(id) {
     const rows = this.db
@@ -372,8 +405,7 @@ export class Store {
   }
   archive(id) {
     const r = this.run(id);
-    if (["queued", "running"].includes(r.status))
-      fail(409, "先取消或等待请求结束");
+    if (!terminal(r.status)) fail(409, "先取消或等待请求结束");
     this.db.prepare("UPDATE runs SET archived=1 WHERE id=?").run(id);
     this.audit("run.archived", r.task_id, { runId: id });
   }
@@ -484,3 +516,4 @@ export class Store {
     this.db.close();
   }
 }
+Object.assign(Store.prototype, reliabilityMethods);

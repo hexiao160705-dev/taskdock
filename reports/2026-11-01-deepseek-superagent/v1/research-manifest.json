@@ -1,0 +1,23 @@
+{
+  "version": "1.0",
+  "as_of": "2026-11-01",
+  "deepseek_commit": "6337fc823ce20251c8de8085948165c81aaa701e",
+  "taskdock_commit": "8ba7fb461d37facf74e9a1611641699ab0457a77",
+  "pages": 24,
+  "narration_characters": 5296,
+  "deepseek_tests": {
+    "files": 59,
+    "passed": 1197,
+    "layer": "unit/component/host-fixture + typecheck/build"
+  },
+  "taskdock_tests": {
+    "passed": 26,
+    "layer": "unit/integration + mocked model contract"
+  },
+  "limits": [
+    "no real provider end-to-end",
+    "no real GitHub/Feishu writes",
+    "no production deployment",
+    "proposed integration not implemented"
+  ]
+}

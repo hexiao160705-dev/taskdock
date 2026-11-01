@@ -24,7 +24,7 @@ export function createRegistry({
     res.json({
       status: "ok",
       service: "taskdock-registry",
-      version: "0.1.0",
+      version: "0.2.0",
       pid: process.pid,
       instance: digest(path.resolve(dataDir)).slice(0, 16),
     }),
@@ -51,10 +51,11 @@ export function createRegistry({
     const bundle = bundleSchema.parse(req.body);
     if (digest(bundle.task) !== bundle.digest) fail(422, "能力包摘要不匹配");
     if (
-      bundle.task.mcpServers.length ||
-      Object.keys(bundle.task.sampleInput).length
+      (bundle.task.mcpServers || []).length ||
+      Object.keys(bundle.task.sampleInput || {}).length ||
+      (bundle.task.children || []).length
     )
-      fail(422, "共享包不可包含 MCP 连接或示例请求上下文");
+      fail(422, "共享包不可包含 MCP 连接、示例请求或未打包的本机子版本引用");
     db.prepare("INSERT OR IGNORE INTO packages VALUES(?,?,?,?,?)").run(
       bundle.digest,
       bundle.task.id,

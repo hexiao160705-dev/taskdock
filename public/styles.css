@@ -1755,3 +1755,125 @@ dialog::backdrop {
     scroll-behavior: auto !important;
   }
 }
+nav {
+  min-height: 0;
+  overflow-y: auto;
+  flex-shrink: 1;
+}
+.sidebar-bottom {
+  flex-shrink: 0;
+}
+.task-tree {
+  overflow-x: auto;
+}
+.task-tree ul {
+  list-style: none;
+  padding-left: 24px;
+  margin: 12px 0;
+  border-left: 1px solid var(--line);
+}
+.task-tree > ul {
+  padding-left: 0;
+  border: 0;
+}
+.tree-node {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 17px;
+  margin: 10px 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  min-width: 290px;
+  background: white;
+}
+.tree-node > div {
+  flex: 1;
+  min-width: 0;
+}
+.tree-node h3 {
+  margin: 0 0 7px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.tree-reference > .tag {
+  margin-top: 10px;
+  display: inline-block;
+}
+.attention-card {
+  padding: 22px;
+  border: 1px solid #e6c67c;
+  border-radius: 12px;
+  background: #fffbf1;
+  margin: 20px 0;
+}
+.attention-card h3 {
+  margin: 0 0 12px;
+}
+.attempt-list {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.run-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  justify-content: flex-end;
+}
+.delivery-receive {
+  display: flex;
+  align-items: center;
+  padding-top: 16px;
+}
+.run-overview {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+details {
+  margin: 16px 0;
+}
+summary {
+  cursor: pointer;
+  color: var(--blue);
+  padding: 9px 0;
+}
+.tree-node small,
+.attention-card p,
+.list-card p {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  .task-tree ul {
+    padding-left: 8px;
+  }
+  .task-tree > ul {
+    padding-left: 0;
+  }
+  .task-tree {
+    padding: 10px;
+  }
+  .tree-node {
+    min-width: 180px;
+    flex-wrap: wrap;
+    padding: 12px;
+    gap: 10px;
+  }
+  .tree-node > .task-icon {
+    display: none;
+  }
+  .tree-node h3 {
+    font-size: 13px;
+  }
+  .attention-card {
+    padding: 15px;
+  }
+  .run-actions {
+    justify-content: flex-start;
+  }
+  .delivery-receive {
+    padding-top: 0;
+    padding-bottom: 12px;
+  }
+}

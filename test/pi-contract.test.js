@@ -150,3 +150,64 @@ test("actual Pi tool allowlist contains only explicitly passed tools, no read/ba
     rmSync(cwd, { recursive: true, force: true });
   }
 });
+
+test("narrowed Mandate hides disallowed tools and never connects their MCP server (actual SDK, mocked model)", async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "taskdock-narrow-tools-")),
+    previous = process.env.TASKDOCK_TEST_MODEL_KEY;
+  process.env.TASKDOCK_TEST_MODEL_KEY = "fixture-only-key";
+  let names;
+  try {
+    const config = taskSchema.parse({
+      ...seeds[1],
+      runner: "pi",
+      model: {
+        provider: "openai",
+        name: "gpt-4.1-mini",
+        apiKeyEnv: "TASKDOCK_TEST_MODEL_KEY",
+      },
+      mcpServers: [
+        {
+          name: "blocked",
+          url: "http://127.0.0.1:1/mcp",
+          allowedTools: ["do_write"],
+        },
+      ],
+    });
+    const result = await piRunner({
+      config,
+      input: { goal: "fixture" },
+      signal: new AbortController().signal,
+      event: () => {},
+      runDir: dir,
+      authorize: (action) => {
+        if (action !== "execute")
+          throw Object.assign(new Error("not granted"), { status: 403 });
+      },
+      requestHuman: () => {
+        assert.fail("not granted");
+      },
+      sessionFactory: async (options) => {
+        names = options.tools.map((t) => t.name);
+        const scoped = await createScopedPiSession(options);
+        options.runtime.streamSimple = () => {
+          const stream = createAssistantMessageEventStream();
+          queueMicrotask(() =>
+            stream.push({
+              type: "done",
+              reason: "stop",
+              message: fauxAssistantMessage("fixture result"),
+            }),
+          );
+          return stream;
+        };
+        return scoped;
+      },
+    });
+    assert.deepEqual(names, []);
+    assert.equal(result.summary, "fixture result");
+  } finally {
+    if (previous === undefined) delete process.env.TASKDOCK_TEST_MODEL_KEY;
+    else process.env.TASKDOCK_TEST_MODEL_KEY = previous;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

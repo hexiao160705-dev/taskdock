@@ -1,0 +1,6 @@
+**/*.mp4
+**/*.mp3
+**/*.zip
+**/technical-briefing*.html
+**/build/capture.html
+**/build/audio-*/

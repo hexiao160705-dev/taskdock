@@ -11,7 +11,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { seeds } from "../src/seeds.js";
 import { request as nodeRequest } from "node:http";
 import { piRunner, createScopedPiSession } from "../src/runner.js";
-import { taskSchema } from "../src/schema.js";
+import { taskSchema, digest } from "../src/schema.js";
 import {
   createAssistantMessageEventStream,
   fauxAssistantMessage,
@@ -286,7 +286,7 @@ test("official MCP Streamable HTTP client discovers, opens, submits and retrieve
         new StreamableHTTPClientTransport(new URL(`${url}/mcp`)),
       );
       const list = await client.listTools();
-      assert.equal(list.tools.length, 7);
+      assert.equal(list.tools.length, 12);
       const call = async (name, args) => {
         const r = await client.callTool({ name, arguments: args });
         assert.ok(!r.isError, JSON.stringify(r));
@@ -401,6 +401,35 @@ test("independent registry round-trip validates digest, sanitizes export, and in
           body: JSON.stringify(altered),
         });
         assert.equal(bad.status, 422);
+        const legacyTask = { ...pkg.task };
+        delete legacyTask.children;
+        delete legacyTask.limits;
+        legacyTask.model = {
+          ...legacyTask.model,
+          apiKeyEnv: "UNTRUSTED_CREDENTIAL_REFERENCE",
+        };
+        const legacy = {
+          schemaVersion: "taskdock/0.1",
+          version: "0.1.0",
+          task: legacyTask,
+          digest: digest(legacyTask),
+        };
+        const posted = await fetch(url + "/api/packages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(legacy),
+        });
+        assert.equal(posted.status, 201);
+        const oldInstalled = await request("/api/registry/install", {
+          method: "POST",
+          body: { digest: legacy.digest, id: "legacy-check" },
+        });
+        assert.equal(oldInstalled.status, 201);
+        assert.equal(
+          oldInstalled.body.draft.model.apiKeyEnv,
+          "TASKDOCK_IMPORTED_MODEL_KEY",
+        );
+        assert.equal(oldInstalled.body.stable, null);
       },
       { registryUrl: url },
     );
@@ -410,3 +439,199 @@ test("independent registry round-trip validates digest, sanitizes export, and in
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("HTTP task composition, fork, typed human answers and durable receipt protocol keep session isolation", () =>
+  fixture(async ({ service, request, url }) => {
+    const child = service.store.task("requirement-review").stable;
+    const task = {
+      ...seeds[1],
+      id: "approval-parent",
+      name: "approval parent",
+      children: [
+        {
+          key: "shared-review",
+          taskId: "requirement-review",
+          releaseId: child.id,
+          digest: child.digest,
+          inputMap: {
+            goal: "goal",
+            audience: "audience",
+            constraints: "constraints",
+            acceptance: "acceptance",
+          },
+        },
+      ],
+      humanGate: {
+        question: "provide approval context",
+        when: "before",
+        fields: [{ id: "note", label: "note", type: "text", required: true }],
+      },
+    };
+    assert.equal(
+      (await request("/api/tasks", { method: "POST", body: task })).status,
+      201,
+    );
+    let proof = (
+      await request("/api/tasks/approval-parent/test", {
+        method: "POST",
+        body: { input: task.sampleInput },
+      })
+    ).body;
+    await service.executor.idle();
+    proof = service.store.run(proof.id);
+    assert.equal(proof.status, "waiting_human");
+    assert.deepEqual(proof.children, []);
+    assert.equal(
+      (
+        await request(
+          `/api/runs/${proof.id}/attentions/${proof.attentions[0].id}/answer`,
+          { method: "POST", body: { answers: { note: "fixture approval" } } },
+        )
+      ).status,
+      202,
+    );
+    await service.executor.idle();
+    assert.equal(
+      (
+        await request("/api/tasks/approval-parent/promote", {
+          method: "POST",
+          body: {},
+        })
+      ).status,
+      200,
+    );
+    const fork = await request("/api/tasks/requirement-review/fork", {
+      method: "POST",
+      body: {
+        id: "forked-review",
+        name: "tailored",
+        patch: { instructions: "new method" },
+      },
+    });
+    assert.equal(fork.status, 201);
+    assert.equal(fork.body.draft.origin.digest, child.digest);
+    assert.equal(fork.body.stable, null);
+    assert.ok(
+      (await request("/api/task-graph")).body.edges.some(
+        (e) => e.parentId === "approval-parent",
+      ),
+    );
+    const a = (
+        await request("/api/client/sessions", {
+          method: "POST",
+          body: { label: "A" },
+        })
+      ).body,
+      b = (
+        await request("/api/client/sessions", {
+          method: "POST",
+          body: { label: "B" },
+        })
+      ).body;
+    const ah = { Authorization: `Session ${a.sessionToken}` },
+      bh = { Authorization: `Session ${b.sessionToken}` };
+    let r = (
+      await request("/api/client/runs", {
+        method: "POST",
+        headers: ah,
+        body: {
+          taskId: task.id,
+          input: { ...task.sampleInput, private: "PARENT_A_ONLY" },
+          idempotencyKey: "human-http",
+        },
+      })
+    ).body;
+    await service.executor.idle();
+    r = service.store.run(r.id);
+    const attention = r.attentions[0];
+    assert.equal(
+      (
+        await request(
+          `/api/client/runs/${r.id}/attentions/${attention.id}/answer`,
+          {
+            method: "POST",
+            headers: bh,
+            body: { answers: { note: "wrong session" } },
+          },
+        )
+      ).status,
+      404,
+    );
+    const mcp = new Client({ name: "reliability-mcp", version: "1" });
+    try {
+      await mcp.connect(
+        new StreamableHTTPClientTransport(new URL(url + "/mcp")),
+      );
+      const answered = await mcp.callTool({
+        name: "taskdock_answer",
+        arguments: {
+          runId: r.id,
+          attentionId: attention.id,
+          answers: { note: "explicit fixture answer" },
+          sessionToken: a.sessionToken,
+        },
+      });
+      assert.ok(!answered.isError);
+      await service.executor.idle();
+      assert.equal(service.store.run(r.id).status, "succeeded");
+      const result = await mcp.callTool({
+        name: "taskdock_receive",
+        arguments: { sessionToken: a.sessionToken, leaseSeconds: 5 },
+      });
+      const messages = result.structuredContent.messages;
+      assert.ok(
+        messages.some(
+          (m) => m.payload.runId === r.id && m.kind === "waiting_human",
+        ),
+      );
+      assert.deepEqual(
+        (
+          await request("/api/client/deliveries/receive", {
+            method: "POST",
+            headers: bh,
+            body: {},
+          })
+        ).body.messages,
+        [],
+      );
+      for (const m of messages) {
+        assert.equal(
+          (
+            await request(`/api/client/deliveries/${m.id}/ack`, {
+              method: "POST",
+              headers: bh,
+              body: { receipt: m.receipt },
+            })
+          ).status,
+          404,
+        );
+        const ack = await mcp.callTool({
+          name: "taskdock_ack",
+          arguments: {
+            sessionToken: a.sessionToken,
+            messageId: m.id,
+            receipt: m.receipt,
+          },
+        });
+        assert.equal(ack.structuredContent.state, "acked");
+      }
+      const next = (
+        await request("/api/client/deliveries/receive", {
+          method: "POST",
+          headers: ah,
+          body: {},
+        })
+      ).body.messages;
+      assert.ok(
+        next.some(
+          (m) => m.payload.runId === r.id && m.payload.status === "succeeded",
+        ),
+      );
+      assert.equal(
+        (await request(`/api/client/runs/${r.id}`, { headers: bh })).status,
+        404,
+      );
+    } finally {
+      await mcp.close();
+    }
+  }));

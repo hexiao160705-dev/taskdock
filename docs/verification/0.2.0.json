@@ -1,0 +1,266 @@
+{
+  "version": "0.2.0",
+  "date": "2026-11-01",
+  "layers": {
+    "backendAndOfflineSdk": {
+      "passed": 44,
+      "failed": 0,
+      "files": 5,
+      "liveProvider": false,
+      "checks": [
+        {
+          "name": "A/B concurrent requests pin the same capability but cannot read each other",
+          "status": "passed",
+          "durationMs": 120.674834
+        },
+        {
+          "name": "idempotent retry returns one request; different input or channel conflicts",
+          "status": "passed",
+          "durationMs": 132.903333
+        },
+        {
+          "name": "stable publication requires successful test of the exact draft digest",
+          "status": "passed",
+          "durationMs": 154.272792
+        },
+        {
+          "name": "draft changes cannot mutate queued stable requests; real Git rollback",
+          "status": "passed",
+          "durationMs": 206.141083
+        },
+        {
+          "name": "revision conflict prevents lost updates",
+          "status": "passed",
+          "durationMs": 24.446417
+        },
+        {
+          "name": "knowledge is reviewed into draft only; stable and prior snapshots remain unchanged",
+          "status": "passed",
+          "durationMs": 116.241084
+        },
+        {
+          "name": "disabled learning and cross-task source are rejected",
+          "status": "passed",
+          "durationMs": 123.646291
+        },
+        {
+          "name": "schedules persist the scheduler computed next instant in Shanghai time and fire once",
+          "status": "passed",
+          "durationMs": 118.63275
+        },
+        {
+          "name": "export excludes run history, example input, MCP connections and custom key env",
+          "status": "passed",
+          "durationMs": 92.877458
+        },
+        {
+          "name": "invalid paths, shell fields and MCP credentials in URLs are rejected",
+          "status": "passed",
+          "durationMs": 1.238666
+        },
+        {
+          "name": "queued cancellation and failure produce distinct persisted status",
+          "status": "passed",
+          "durationMs": 40.00375
+        },
+        {
+          "name": "timeout is enforced and sensitive error text is redacted",
+          "status": "passed",
+          "durationMs": 48.045292
+        },
+        {
+          "name": "restart interrupts unfinished runs without replaying side effects",
+          "status": "passed",
+          "durationMs": 24.850667
+        },
+        {
+          "name": "archiving preserves evidence and explicitly includes archived history",
+          "status": "passed",
+          "durationMs": 92.744709
+        },
+        {
+          "name": "user-defined learning rules create deduplicated proposals without copying request context",
+          "status": "passed",
+          "durationMs": 117.076958
+        },
+        {
+          "name": "Pi custom tool bridge invokes only configured MCP allowlist (real local MCP, mocked model)",
+          "status": "passed",
+          "durationMs": 714.572167
+        },
+        {
+          "name": "HTTP clients use isolated session capabilities and stable-only validated submission",
+          "status": "passed",
+          "durationMs": 318.021
+        },
+        {
+          "name": "search returns stable services, unmatched plans fall back locally, drafts stay hidden",
+          "status": "passed",
+          "durationMs": 287.790709
+        },
+        {
+          "name": "cross-origin requests, DNS rebinding, malformed schema and oversized input are rejected",
+          "status": "passed",
+          "durationMs": 281.468042
+        },
+        {
+          "name": "API authentication is required when configured, with Unicode-safe comparisons",
+          "status": "passed",
+          "durationMs": 268.957667
+        },
+        {
+          "name": "official MCP Streamable HTTP client discovers, opens, submits and retrieves real results",
+          "status": "passed",
+          "durationMs": 323.494542
+        },
+        {
+          "name": "official MCP stdio client is a thin client to the same isolation service",
+          "status": "passed",
+          "durationMs": 422.218458
+        },
+        {
+          "name": "independent registry round-trip validates digest, sanitizes export, and installs draft only",
+          "status": "passed",
+          "durationMs": 320.707834
+        },
+        {
+          "name": "HTTP task composition, fork, typed human answers and durable receipt protocol keep session isolation",
+          "status": "passed",
+          "durationMs": 457.868583
+        },
+        {
+          "name": "Pi runner completes serial Team stages using actual SDK with mocked model responses; no live model claim",
+          "status": "passed",
+          "durationMs": 21.792083
+        },
+        {
+          "name": "actual Pi SDK initializes fresh sessions without ambient AGENTS, tools, skills or history (offline contract)",
+          "status": "passed",
+          "durationMs": 6.304125
+        },
+        {
+          "name": "actual Pi tool allowlist contains only explicitly passed tools, no read/bash/write",
+          "status": "passed",
+          "durationMs": 3.795416
+        },
+        {
+          "name": "narrowed Mandate hides disallowed tools and never connects their MCP server (actual SDK, mocked model)",
+          "status": "passed",
+          "durationMs": 6.049791
+        },
+        {
+          "name": "real restart makes committed tool receipts available to the resumed executor without rerunning the action",
+          "status": "passed",
+          "durationMs": 452.461125
+        },
+        {
+          "name": "real SIGKILL/restart resumes a durable queued/running Run with the original capability and own checkpoint",
+          "status": "passed",
+          "durationMs": 453.232
+        },
+        {
+          "name": "real crash after external success before receipt waits for reconciliation and does not repeat the action",
+          "status": "passed",
+          "durationMs": 499.524916
+        },
+        {
+          "name": "authorization can narrow but cannot expand; input text cannot grant a tool or child",
+          "status": "passed",
+          "durationMs": 121.28925
+        },
+        {
+          "name": "task DAG shares pinned child capability while parent request trees and input projections remain private",
+          "status": "passed",
+          "durationMs": 416.937291
+        },
+        {
+          "name": "cycle rejection and fork provenance do not mutate a shared child or existing parent version",
+          "status": "passed",
+          "durationMs": 191.320709
+        },
+        {
+          "name": "a composite task can consist entirely of child capabilities without a redundant local checklist",
+          "status": "passed",
+          "durationMs": 226.935709
+        },
+        {
+          "name": "human waiting survives store reopen; typed answers resume the same Run with a new Attempt",
+          "status": "passed",
+          "durationMs": 55.958834
+        },
+        {
+          "name": "revocation is persistent and stops waiting descendants from being answered or retried",
+          "status": "passed",
+          "durationMs": 40.49425
+        },
+        {
+          "name": "Outbox is transactionally coupled; lease loss redelivers one ID and ACK/NACK are scoped and durable",
+          "status": "passed",
+          "durationMs": 101.019333
+        },
+        {
+          "name": "failure to write an Outbox rolls back terminal business state",
+          "status": "passed",
+          "durationMs": 35.786208
+        },
+        {
+          "name": "archive projection failure cannot undo committed result/delivery and is rebuilt from SQLite",
+          "status": "passed",
+          "durationMs": 25.010541
+        },
+        {
+          "name": "provider secrets are redacted from checkpoints and results, not just errors",
+          "status": "passed",
+          "durationMs": 35.091625
+        },
+        {
+          "name": "multiple open questions must all be answered before dispatch resumes",
+          "status": "passed",
+          "durationMs": 38.847375
+        },
+        {
+          "name": "an expired Attempt is fenced off after a replacement claim",
+          "status": "passed",
+          "durationMs": 25.69225
+        },
+        {
+          "name": "descendant tool calls share the root budget and completed receipts are reused",
+          "status": "passed",
+          "durationMs": 193.215958
+        }
+      ]
+    },
+    "realProcessCrash": {
+      "cases": 3,
+      "signal": "SIGKILL",
+      "sideEffect": "local file stand-in; not a live external business service"
+    },
+    "browser": {
+      "sameRunAcrossServiceRestart": true,
+      "privateChildInputKeys": ["evidence"],
+      "acknowledged": 3,
+      "delayedSavePreservesFocusAndSelection": true,
+      "untestedBindingRejected": true,
+      "otherCallerUnchanged": true,
+      "layoutSamples": 20,
+      "mobilePhysicalDevice": false,
+      "unhandledPageErrors": []
+    },
+    "nativeDesktop": {
+      "layer": "native macOS Chrome UI automation; not human or physical-phone acceptance",
+      "status": "succeeded",
+      "attempts": ["waiting_human", "waiting_children", "succeeded"],
+      "privateChildInputKeys": ["evidence"],
+      "acknowledged": 3,
+      "physicalImeTested": false,
+      "humanAcceptance": false
+    }
+  },
+  "limits": [
+    "no live model response",
+    "no remote business side-effect verification",
+    "no public deployment",
+    "no physical-phone acceptance",
+    "no OS sandbox or cloud multi-tenant guarantee"
+  ]
+}
