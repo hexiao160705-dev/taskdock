@@ -1,0 +1,32 @@
+{
+  "version": "0.3.0",
+  "backend": {
+    "passed": 44,
+    "failed": 0,
+    "liveModel": false
+  },
+  "localization": {
+    "fragments": 412,
+    "missing": 0,
+    "userValuesTranslated": false
+  },
+  "browser": {
+    "layoutSamples": 40,
+    "dialogTabs": 12,
+    "invalidJson": true,
+    "httpValidation": true,
+    "inputPreserved": true,
+    "pageErrors": []
+  },
+  "runtime": {
+    "controlPlaneVersion": "0.3.0",
+    "registryVersion": "0.3.0",
+    "archivePending": 0
+  },
+  "limits": [
+    "Browser automation is not human acceptance",
+    "No physical phone or physical IME validation",
+    "Native desktop core-flow validation belongs to 0.2 baseline; bilingual 0.3 native acceptance is not claimed",
+    "No live model evaluation"
+  ]
+}

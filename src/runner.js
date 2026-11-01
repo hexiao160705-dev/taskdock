@@ -124,7 +124,7 @@ export async function piRunner({
         permitted("tool", `${config.id}/${server.name}/${name}`),
       );
       if (!allowed.length) continue;
-      const client = new Client({ name: "taskdock-runner", version: "0.2.0" });
+      const client = new Client({ name: "taskdock-runner", version: "0.3.0" });
       clients.push(client);
       const headers = {};
       if (server.tokenEnv) {

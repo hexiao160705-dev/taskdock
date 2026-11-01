@@ -19,7 +19,7 @@ const server = service.app.listen(port, host, (error) => {
     });
     return;
   }
-  console.log(`TaskDock 0.2.0 · http://${host}:${port} · 本机开发服务`);
+  console.log(`TaskDock 0.3.0 · http://${host}:${port} · 本机开发服务`);
 });
 let stopping = false;
 async function stop() {

@@ -13,3 +13,8 @@
 - [可靠执行、授权、投递与任务关系契约](RELIABILITY.md)
 - [DeepSeek 技术研究文字（视频附件保留本机交付目录）](../reports/2026-11-01-deepseek-superagent/v1/research-report.md)
 - [上层会话调用约束](../skills/taskdock-client/SKILL.md)
+
+- [Bilingual open-source release work record](OPEN-SOURCE-RELEASE.md)
+
+- [0.3.0 bilingual MIT release](releases/0.3.0.md)
+- [English technical guide](TECHNICAL-GUIDE.md)

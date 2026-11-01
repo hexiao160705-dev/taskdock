@@ -14,17 +14,32 @@
   <body>
     <div class="registry-shell">
       <header class="registry-top">
+        <button id="locale-toggle" class="button small" type="button">
+          简体中文
+        </button>
         <a class="brand" href="/"
           ><span class="brand-mark">▥</span
           ><span>TaskDock <small>CAPABILITY REGISTRY</small></span></a
-        ><span class="badge blue">自托管 Registry DEMO</span>
+        ><span class="badge blue"
+          ><span data-i18n-text="自托管 Registry DEMO"
+            >自托管 Registry DEMO</span
+          ></span
+        >
       </header>
       <section class="registry-hero">
         <div class="eyebrow">GOOD WORK DESERVES TO BE REUSED</div>
-        <h1>让好的任务能力，<br />抵达下一个工作空间。</h1>
+        <h1>
+          <span data-i18n-text="让好的任务能力，">让好的任务能力，</span
+          ><br /><span data-i18n-text="抵达下一个工作空间。"
+            >抵达下一个工作空间。</span
+          >
+        </h1>
         <p>
-          共享经过维护和版本管理的任务
-          AI。保留方法、规则和审核后的知识；请求历史与私密数据留在本地。
+          <span
+            data-i18n-text="共享经过维护和版本管理的任务 AI。保留方法、规则和审核后的知识；请求历史与私密数据留在本地。"
+            >共享经过维护和版本管理的任务
+            AI。保留方法、规则和审核后的知识；请求历史与私密数据留在本地。
+          </span>
         </p>
       </section>
       <div id="registry-auth"></div>
@@ -32,13 +47,20 @@
         ><input
           id="registry-search"
           aria-label="搜索共享任务"
+          data-i18n-aria-label="搜索共享任务"
           placeholder="搜索任务名称、能力或标签…"
+          data-i18n-placeholder="搜索任务名称、能力或标签…"
       /></label>
       <div id="registry-packages" class="wide-grid">
-        <div class="empty full">正在连接 Registry…</div>
+        <div class="empty full">
+          <span data-i18n-text="正在连接 Registry…">正在连接 Registry…</span>
+        </div>
       </div>
       <footer class="registry-footer">
-        TaskDock Registry 0.1.0 · 独立服务演示 · 尚未部署为公开社区
+        <span
+          data-i18n-text="TaskDock Registry 0.3.0 · 独立服务演示 · 尚未部署为公开社区"
+          >TaskDock Registry 0.3.0 · 独立服务演示 · 尚未部署为公开社区
+        </span>
       </footer>
     </div>
     <dialog id="package-dialog"><div id="package-detail"></div></dialog>

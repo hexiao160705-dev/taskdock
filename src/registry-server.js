@@ -24,7 +24,7 @@ export function createRegistry({
     res.json({
       status: "ok",
       service: "taskdock-registry",
-      version: "0.2.0",
+      version: "0.3.0",
       pid: process.pid,
       instance: digest(path.resolve(dataDir)).slice(0, 16),
     }),

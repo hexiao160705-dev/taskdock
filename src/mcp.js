@@ -4,7 +4,7 @@ import { inputSchema, slug, authorizationSchema } from "./schema.js";
 
 export function createMcpServer(call) {
   const server = new McpServer(
-    { name: "taskdock", version: "0.2.0" },
+    { name: "taskdock", version: "0.3.0" },
     {
       instructions:
         "Discover task services first. Use a fresh session per parent conversation. Submit only minimal context. Stable only. Never reuse another conversation token.",

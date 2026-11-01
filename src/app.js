@@ -22,7 +22,7 @@ import {
 import { seeds } from "./seeds.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const APP_VERSION = "0.2.0";
+const APP_VERSION = "0.3.0";
 const same = (a, b) => {
   const left = Buffer.from(a),
     right = Buffer.from(b);

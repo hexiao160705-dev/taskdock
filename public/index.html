@@ -16,24 +16,45 @@
     <aside class="sidebar">
       <a class="brand" href="#home"
         ><span class="brand-mark">▥</span
-        ><span>TaskDock<small>任务 AGENT 中台</small></span></a
+        ><span
+          >TaskDock<small
+            ><span data-i18n-text="任务 AGENT 中台"
+              >任务 AGENT 中台</span
+            ></small
+          ></span
+        ></a
       >
       <div class="workspace">
         <span class="workspace-icon">C</span>
-        <div>我的工作空间<small>PERSONAL WORKSPACE</small></div>
+        <div>
+          <span data-i18n-text="我的工作空间">我的工作空间</span
+          ><small>PERSONAL WORKSPACE</small>
+        </div>
         <span class="tiny">⌄</span>
       </div>
-      <div class="nav-caption">工作空间</div>
-      <nav id="nav" aria-label="主导航"></nav>
+      <div class="nav-caption">
+        <span data-i18n-text="工作空间">工作空间</span>
+      </div>
+      <nav id="nav" aria-label="主导航" data-i18n-aria-label="主导航"></nav>
       <div class="sidebar-bottom">
         <div class="local-box">
           <span class="live-dot"></span>
-          <div>本地优先<small>能力共享 · 上下文独立</small></div>
+          <div>
+            <span data-i18n-text="本地优先">本地优先</span
+            ><small
+              ><span data-i18n-text="能力共享 · 上下文独立"
+                >能力共享 · 上下文独立</span
+              ></small
+            >
+          </div>
           <span class="local-symbol">⌁</span>
         </div>
         <a class="sidebar-settings" href="#settings"
           ><span class="avatar">C</span>
-          <div>Maintainer<small>个人维护者</small></div>
+          <div>
+            <span data-i18n-text="维护者">维护者</span
+            ><small><span data-i18n-text="个人维护者">个人维护者</span></small>
+          </div>
           <span>↗</span></a
         >
       </div>
@@ -42,26 +63,45 @@
       <header class="topbar">
         <div class="crumb">
           <span class="mobile-brand">TaskDock</span
-          ><span class="desktop-label">工作空间</span
-          ><span class="slash">/</span><span id="page-label">任务工作台</span>
+          ><span class="desktop-label"
+            ><span data-i18n-text="工作空间">工作空间</span></span
+          ><span class="slash">/</span
+          ><span id="page-label"
+            ><span data-i18n-text="任务工作台">任务工作台</span></span
+          >
         </div>
         <div class="top-actions">
+          <button id="locale-toggle" class="button small" type="button">
+            简体中文
+          </button>
           <span class="environment"
-            ><span class="live-dot"></span>本机开发环境</span
+            ><span class="live-dot"></span
+            ><span data-i18n-text="本机开发环境">本机开发环境</span></span
           ><span class="top-divider"></span
-          ><a href="#settings" class="header-link">接入指南 <span>↗</span></a
+          ><a href="#settings" class="header-link"
+            ><span data-i18n-text="接入指南">接入指南 </span><span>↗</span></a
           ><span class="avatar">C</span>
         </div>
       </header>
-      <main id="main"><div class="loading">正在连接本地中台…</div></main>
+      <main id="main">
+        <div class="loading">
+          <span data-i18n-text="正在连接本地中台…">正在连接本地中台…</span>
+        </div>
+      </main>
       <footer class="footer">
         <span
-          ><span class="live-dot"></span>TaskDock 0.2.0
-          <span class="muted">/ 本地 DEMO</span></span
-        ><span>为可复用的任务，建立可积累的能力。</span>
+          ><span class="live-dot"></span>TaskDock 0.3.0
+          <span class="muted"
+            ><span data-i18n-text="/ 本地 DEMO">/ 本地 DEMO</span></span
+          ></span
+        ><span
+          ><span data-i18n-text="为可复用的任务，建立可积累的能力。"
+            >为可复用的任务，建立可积累的能力。</span
+          ></span
+        >
       </footer>
     </div>
-    <dialog id="modal" aria-label="任务详情">
+    <dialog id="modal" aria-label="任务详情" data-i18n-aria-label="任务详情">
       <div id="modal-body"></div>
     </dialog>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>

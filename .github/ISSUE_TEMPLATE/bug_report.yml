@@ -1,0 +1,20 @@
+name: Bug report / 问题反馈
+description: Report reproducible behavior with redacted evidence.
+body:
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior / 预期与实际表现
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce / 复现步骤
+      description: Include version and OS. Never include keys or raw request histories.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Verification layer and redacted evidence / 测试层与脱敏证据

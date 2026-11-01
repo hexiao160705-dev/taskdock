@@ -1,6 +1,6 @@
 {
   "name": "taskdock",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "Local-first task agent control plane with isolated runs and versioned capability bundles",
@@ -13,7 +13,7 @@
     "registry": "node --env-file-if-exists=.env src/registry-server.js",
     "mcp": "node --env-file-if-exists=.env src/mcp-stdio.js",
     "test": "node --test --test-concurrency=1 test/*.test.js",
-    "check": "node scripts/check.js",
+    "check": "node scripts/check.js && node scripts/i18n/check.mjs",
     "backup": "node scripts/backup.js",
     "demo": "node --env-file-if-exists=.env scripts/client-demo.js",
     "local:start": "node --env-file-if-exists=.env scripts/local-services.js",
@@ -30,6 +30,24 @@
     "zod": "4.1.12"
   },
   "devDependencies": {
+    "acorn": "8.15.0",
     "prettier": "3.6.2"
-  }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hexiao160705-dev/taskdock.git"
+  },
+  "homepage": "https://github.com/hexiao160705-dev/taskdock#readme",
+  "bugs": {
+    "url": "https://github.com/hexiao160705-dev/taskdock/issues"
+  },
+  "keywords": [
+    "agents",
+    "mcp",
+    "local-first",
+    "task-orchestration",
+    "agent-memory",
+    "pi"
+  ]
 }
