@@ -69,6 +69,7 @@ Pi 每阶段创建新 session，只传当前请求、自己的前序阶段、人
 ```sh
 npm test        # 服务、隔离、协议、版本与离线 Pi 契约检查
 npm run check   # JavaScript 语法与版本一致性
+npm run privacy:check -- --history  # 发布 refs、历史文件与提交邮箱启发式检查
 npm run backup  # SQLite 在线快照 + 任务目录备份
 ```
 

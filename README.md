@@ -139,6 +139,7 @@ The 0.2 baseline passed **44 backend/protocol/offline SDK checks**, including th
 ```sh
 npm test
 npm run check
+npm run privacy:check -- --history
 npm run backup
 ```
 

@@ -18,3 +18,5 @@
 
 - [0.3.0 bilingual MIT release](releases/0.3.0.md)
 - [English technical guide](TECHNICAL-GUIDE.md)
+
+- [Public-source privacy correction and cache limitation](PRIVACY-REVIEW.md)

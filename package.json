@@ -18,7 +18,8 @@
     "demo": "node --env-file-if-exists=.env scripts/client-demo.js",
     "local:start": "node --env-file-if-exists=.env scripts/local-services.js",
     "local:stop": "node --env-file-if-exists=.env scripts/local-services.js stop",
-    "demo:reliability": "node --env-file-if-exists=.env scripts/reliability-demo.js"
+    "demo:reliability": "node --env-file-if-exists=.env scripts/reliability-demo.js",
+    "privacy:check": "node scripts/privacy-check.js"
   },
   "dependencies": {
     "@earendil-works/pi-ai": "1.4.0",
